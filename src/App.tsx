@@ -6,6 +6,7 @@ import { TaskProvider, useTasks } from './context/TaskContext';
 import { Header, ActivePortal } from './components/layout/Header';
 import { Sidebar, NavTab } from './components/layout/Sidebar';
 import { BottomNav } from './components/layout/BottomNav';
+import { MobileNavDrawer } from './components/layout/MobileNavDrawer';
 import { ContextPanel } from './components/layout/ContextPanel';
 import { CommandPalette } from './components/common/CommandPalette';
 import { DailyBriefCard } from './components/home/DailyBriefCard';
@@ -72,6 +73,7 @@ const MainApp: React.FC = () => {
   const [showBundlingBanner, setShowBundlingBanner] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pendingDecisionsCount = DecisionEngine.getDecisions().filter(d => d.status === 'pending').length;
 
   // Global Return to Home handler (triggered by clicking logo or home buttons)
@@ -282,6 +284,7 @@ const MainApp: React.FC = () => {
             setActiveTab('decisions');
             setSelectedTask(null);
           }}
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />
 
         {/* 1. PROVIDER PORTAL VIEW */}
@@ -537,6 +540,7 @@ const MainApp: React.FC = () => {
           setAiWorkspacePrompt('');
           setShowAIWorkspace(true);
         }}
+        onOpenMenu={() => setIsMobileMenuOpen(true)}
       />
 
       {/* 5. Universal Command Palette (Cmd + K) */}
@@ -620,6 +624,27 @@ const MainApp: React.FC = () => {
       <GuideModal
         isOpen={showGuideModal}
         onClose={() => setShowGuideModal(false)}
+      />
+
+      {/* 15. Mobile Navigation Drawer (<1024px) */}
+      <MobileNavDrawer
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        activeTab={activeTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          setSelectedTask(null);
+        }}
+        activePortal={activePortal}
+        setActivePortal={(portal) => {
+          setActivePortal(portal);
+          setSelectedTask(null);
+        }}
+        onOpenProfile={() => setShowProfile(true)}
+        onOpenGuide={() => setShowGuideModal(true)}
+        onOpenPrivacy={() => setShowPrivacyCenter(true)}
+        onOpenTrustModal={() => setShowTrustModal(true)}
+        onGoHome={handleNavigateHome}
       />
     </div>
   );

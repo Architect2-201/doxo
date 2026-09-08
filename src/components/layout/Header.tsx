@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { DoxoStorage } from '../../lib/storage/db';
 import { DOXOLogo } from '../common/DOXOLogo';
 import { NotificationsDropdown } from './NotificationsDropdown';
-import { IconSun, IconMoon, IconBell, IconBriefcase, IconBarChart, IconUser, IconShieldCheck, IconSparkles, IconBookOpen, IconScale } from '../common/Icons';
+import { IconSun, IconMoon, IconBell, IconBriefcase, IconBarChart, IconUser, IconShieldCheck, IconSparkles, IconBookOpen, IconScale, IconMenu } from '../common/Icons';
 import { DecisionEngine } from '../../lib/decisions/decisionEngine';
 
 export type ActivePortal = 'customer' | 'user' | 'provider' | 'admin';
@@ -20,6 +20,7 @@ interface HeaderProps {
   onOpenGuide?: () => void;
   onOpenDecisions?: () => void;
   onGoHome?: () => void;
+  onOpenMobileMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -32,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenGuide,
   onOpenDecisions,
   onGoHome,
+  onOpenMobileMenu,
 }) => {
   const { language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
@@ -63,8 +65,9 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Header Actions */}
       <div className="header-actions">
-        {/* Role Switcher Pill */}
+        {/* Role Switcher Pill (Desktop only - mobile uses drawer) */}
         <div
+          className="hide-mobile"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -182,8 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
           />
         </div>
 
-
-        {/* Network Offline Indicator (Section 54) */}
+        {/* Network Offline Indicator */}
         {!isOnline && (
           <div
             className="brand-badge"
@@ -194,26 +196,26 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             title="ინტერნეტ კავშირი გაწყვეტილია. ლოკალური მონაცემები შენახულია."
           >
-            ● {language === 'ka' ? 'ოფლაინ რეჟიმი' : 'Offline Mode'}
+            ● {language === 'ka' ? 'ოფლაინ' : 'Offline'}
           </div>
         )}
 
-        {/* Privacy Center Button */}
+        {/* Privacy Center Button (Desktop) */}
         {onOpenPrivacy && (
           <button
             onClick={onOpenPrivacy}
-            className="btn-icon"
+            className="btn-icon hide-mobile"
             title={language === 'ka' ? 'კონფიდენციალურობა და მონაცემები' : 'Privacy Center'}
           >
             <IconShieldCheck size={16} />
           </button>
         )}
 
-        {/* User Guide & Manual Button */}
+        {/* User Guide & Manual Button (Desktop) */}
         {onOpenGuide && (
           <button
             onClick={onOpenGuide}
-            className="btn-icon"
+            className="btn-icon hide-mobile"
             title={language === 'ka' ? 'ინსტრუქცია & ფუნქციების განმარტება' : 'User Guide & Manual'}
             style={{ color: 'var(--accent-primary)' }}
           >
@@ -221,7 +223,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Decision Center Quick Button */}
+        {/* Decision Center Quick Button (Desktop) */}
         {onOpenDecisions && (
           <button
             onClick={() => {
@@ -229,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onOpenDecisions();
               }
             }}
-            className="btn-icon"
+            className="btn-icon hide-mobile"
             title={language === 'ka' ? 'გადაწყვეტილებების ცენტრი' : 'Decision Center'}
             style={{ position: 'relative', color: 'var(--accent-primary)' }}
           >
@@ -250,11 +252,11 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Trust & Transparency Button */}
+        {/* Trust & Transparency Button (Desktop) */}
         {onOpenTrustModal && (
           <button
             onClick={onOpenTrustModal}
-            className="btn-icon"
+            className="btn-icon hide-mobile"
             title={language === 'ka' ? 'როგორ მუშაობს DOXO' : 'How DOXO Works'}
             style={{ color: 'var(--accent-primary)' }}
           >
@@ -262,24 +264,48 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Language Switcher */}
+        {/* Language Switcher (Desktop) */}
         <button
           onClick={() => setLanguage(language === 'ka' ? 'en' : 'ka')}
-          className="btn-icon"
+          className="btn-icon hide-mobile"
           title={language === 'ka' ? 'Switch to English' : 'გადართე ქართულზე'}
           style={{ fontSize: '12px', fontWeight: 600 }}
         >
           {language === 'ka' ? 'EN' : 'GE'}
         </button>
 
-        {/* Theme Switcher */}
+        {/* Theme Switcher (Desktop) */}
         <button
           onClick={toggleTheme}
-          className="btn-icon"
+          className="btn-icon hide-mobile"
           title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
         >
           {theme === 'light' ? <IconMoon size={16} /> : <IconSun size={16} />}
         </button>
+
+        {/* Mobile Hamburger Menu Toggle Button */}
+        {onOpenMobileMenu && (
+          <button
+            onClick={onOpenMobileMenu}
+            className="btn-icon hide-desktop"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: 'var(--radius-btn)',
+              background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+            }}
+            title={language === 'ka' ? 'მენიუ' : 'Menu'}
+            aria-label="Open navigation menu"
+          >
+            <IconMenu size={18} />
+          </button>
+        )}
 
         {/* User Auth Section: Login / Register OR Profile Avatar */}
         {isAuthenticated && user ? (

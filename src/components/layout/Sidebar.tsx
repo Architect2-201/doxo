@@ -66,7 +66,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'profile' as NavTab, label: t.navProfile, icon: IconUser },
   ];
 
-  const handledCount = completedTasks.length || 3;
+  const handledCount = completedTasks.length;
+  const totalMinutesSaved = completedTasks.reduce((acc, t) => acc + (t.timeSavedMinutes || 0), 0);
+  const timeSavedDisplay = totalMinutesSaved > 0
+    ? (language === 'ka'
+        ? `${Math.floor(totalMinutesSaved / 60)}სთ ${totalMinutesSaved % 60}წთ`
+        : `${Math.floor(totalMinutesSaved / 60)}h ${totalMinutesSaved % 60}m`)
+    : (language === 'ka' ? '0წთ' : '0m');
 
   return (
     <aside className={`app-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
@@ -117,15 +123,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   boxSizing: 'border-box',
                 }}
               >
-                <Icon size={20} />
+                <Icon size={20} style={{ flexShrink: 0 }} />
                 {!isCollapsed && (
                   <span
                     style={{
-                      fontSize: '14.5px',
-                      lineHeight: '20px',
+                      fontSize: '13.5px',
+                      lineHeight: '18px',
+                      whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
+                      flex: 1,
+                      textAlign: 'left',
                     }}
                   >
                     {item.label}
@@ -188,14 +196,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 fontSize: '11px',
                 fontWeight: 700,
               }}
-              title={language === 'ka' ? 'დაზოგილი დრო: 2სთ 40წთ' : 'Time saved: 2h 40m'}
+              title={language === 'ka' ? `დაზოგილი დრო: ${timeSavedDisplay}` : `Time saved: ${timeSavedDisplay}`}
             >
-              2.5h
+              {totalMinutesSaved > 0 ? `${(totalMinutesSaved / 60).toFixed(1)}h` : '0h'}
             </div>
           </div>
         ) : (
           <TimeSavedCard
-            timeSavedText={language === 'ka' ? '2სთ 40წთ' : '2h 40m'}
+            timeSavedText={timeSavedDisplay}
             tasksCount={handledCount}
             periodLabel={language === 'ka' ? 'დღეს' : 'Today'}
             lang={language}

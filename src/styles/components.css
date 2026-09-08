@@ -158,12 +158,12 @@
 .sidebar-link {
   display: flex;
   align-items: center;
-  gap: var(--space-12);
-  padding: 0 var(--space-12);
+  gap: 10px;
+  padding: 0 10px;
   border-radius: var(--radius-btn);
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 14.5px;
+  font-size: 13.5px;
   height: 44px;
   min-height: 44px;
   max-height: 48px;
@@ -200,8 +200,10 @@
 .sidebar-link-badge {
   margin-left: auto;
   font-size: 11px;
-  font-weight: 600;
-  padding: 2px 7px;
+  font-weight: 700;
+  padding: 2px 6px;
+  min-width: 18px;
+  text-align: center;
   border-radius: var(--radius-pill);
   background: var(--accent-primary);
   color: #FFFFFF;
@@ -795,4 +797,49 @@
   50% { transform: scale(1.01); box-shadow: 0 0 12px 2px rgba(98, 91, 255, 0.25); }
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(98, 91, 255, 0); }
 }
+
+/* --------------------------------------------------------------------------
+   14. Universal Smartphone & Tablet Mobile Adaptation (< 768px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  .main-content {
+    padding: 10px 12px 96px !important;
+  }
+
+  .app-header {
+    margin-bottom: var(--space-16) !important;
+    padding: 0 4px !important;
+  }
+
+  .card {
+    padding: 14px 16px !important;
+    border-radius: var(--radius-card) !important;
+  }
+
+  .ai-hero-card {
+    padding: 12px 14px !important;
+  }
+
+  .time-saved-card {
+    padding: 14px !important;
+  }
+
+  /* Modal Mobile Responsiveness */
+  .modal-card,
+  [role="dialog"] .card {
+    max-width: calc(100vw - 20px) !important;
+    width: 100% !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    padding: 16px !important;
+  }
+
+  /* Touch Target & Interaction Optimization */
+  button, 
+  .btn, 
+  .chip {
+    touch-action: manipulation;
+  }
+}
+
 

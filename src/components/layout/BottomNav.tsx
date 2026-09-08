@@ -3,21 +3,23 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useTasks } from '../../context/TaskContext';
 import { NavTab } from './Sidebar';
 import { DOXOOrb } from '../common/DOXOOrb';
-import { IconHome, IconTasks, IconInbox, IconUser, IconScale } from '../common/Icons';
+import { IconHome, IconTasks, IconInbox, IconUser, IconScale, IconMenu } from '../common/Icons';
 import { DecisionEngine } from '../../lib/decisions/decisionEngine';
 
 interface BottomNavProps {
   activeTab: NavTab;
   setActiveTab: (tab: NavTab) => void;
   onAiTrigger: () => void;
+  onOpenMenu?: () => void;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   setActiveTab,
   onAiTrigger,
+  onOpenMenu,
 }) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { activeTasks } = useTasks();
   const pendingDecisionsCount = DecisionEngine.getDecisions().filter(d => d.status === 'pending').length;
 
@@ -97,12 +99,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       </button>
 
       <button
-        onClick={() => setActiveTab('inbox')}
+        onClick={onOpenMenu || (() => setActiveTab('inbox'))}
         className={`bottom-nav-item ${activeTab === 'inbox' ? 'active' : ''}`}
-        aria-label={t.navInbox}
+        aria-label={language === 'ka' ? 'მენიუ' : 'Menu'}
       >
-        <IconInbox size={20} />
-        <span>{t.navInbox}</span>
+        <IconMenu size={20} />
+        <span>{language === 'ka' ? 'მენიუ' : 'Menu'}</span>
       </button>
     </nav>
   );

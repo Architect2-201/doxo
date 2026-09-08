@@ -59,23 +59,25 @@ export const TimeSavedCard: React.FC<TimeSavedCardProps> = ({
         </span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', marginTop: '8px' }}>
         <span
           style={{
-            fontSize: '26px',
-            fontWeight: 700,
-            letterSpacing: '-0.03em',
+            fontSize: '21px',
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
             color: 'var(--text-primary)',
-            lineHeight: 1.1,
+            lineHeight: 1.2,
+            whiteSpace: 'nowrap',
           }}
         >
           {timeSavedText}
         </span>
         <span
           style={{
-            fontSize: '14.5px',
-            fontWeight: 500,
+            fontSize: '13px',
+            fontWeight: 600,
             color: 'var(--text-secondary)',
+            whiteSpace: 'nowrap',
           }}
         >
           {verb}

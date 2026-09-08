@@ -19,7 +19,7 @@ export const DailyBriefCard: React.FC<DailyBriefCardProps> = ({
   // Filter up to 3 active / prioritized tasks
   const activeList = tasks.filter(t => !['completed', 'cancelled'].includes(t.status));
   const displayTasks = activeList.slice(0, 3);
-  const totalCount = activeList.length || 4;
+  const totalCount = activeList.length;
 
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -97,9 +97,13 @@ export const DailyBriefCard: React.FC<DailyBriefCardProps> = ({
           lineHeight: '24px',
         }}
       >
-        {language === 'ka'
-          ? `დღეს შენთვის ${totalCount} მნიშვნელოვანი საქმეა`
-          : `You have ${totalCount} important tasks today`}
+        {displayTasks.length > 0
+          ? (language === 'ka'
+              ? `დღეს შენთვის ${totalCount} მნიშვნელოვანი საქმეა`
+              : `You have ${totalCount} important tasks today`)
+          : (language === 'ka'
+              ? 'დღეს ყველა საქმე მოგვარებულია'
+              : 'All tasks are completed for today')}
       </h3>
 
       {/* Structured Task List (1. Task / Time / Status) */}
