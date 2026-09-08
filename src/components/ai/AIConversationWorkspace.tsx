@@ -5,10 +5,11 @@ import { useTasks } from '../../context/TaskContext';
 import { Provider } from '../../types/provider';
 import { Task, ServiceCategory } from '../../types/task';
 import { AIMessage, StructuredPlan, ClarificationOption } from '../../types/ai';
-import { AIService } from '../../lib/ai/aiService';
+import { AIService, AnalyzedIntent } from '../../lib/ai/aiService';
 import { DoxoStorage } from '../../lib/storage/db';
 import { AIMessageRenderer } from './AIMessageRenderer';
 import { TaskPlanCard } from './TaskPlanCard';
+import { ActionApprovalCard } from './ActionApprovalCard';
 import { TrustModal } from './TrustModal';
 import { DOXOOrb } from '../common/DOXOOrb';
 import {
@@ -44,6 +45,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
   const [isRecording, setIsRecording] = useState(false);
   const [showTrustModal, setShowTrustModal] = useState(false);
   const [activePlan, setActivePlan] = useState<StructuredPlan | null>(null);
+  const [currentIntent, setCurrentIntent] = useState<AnalyzedIntent | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isContextCollapsed, setIsContextCollapsed] = useState(false);
@@ -140,6 +142,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
     if (plan) {
       setTimeout(() => {
         setActivePlan(plan);
+        setCurrentIntent(null);
         setMessages((prev) => [
           ...prev,
           {
@@ -160,6 +163,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
     // 3. Single Intent / Specific Service Matching
     setTimeout(() => {
       const intent = AIService.analyzeIntent(queryText, user?.preferences);
+      setCurrentIntent(intent);
       const rankedProviders = AIService.rankProvidersForTask(
         intent.category,
         intent.location,
@@ -169,14 +173,15 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
 
       if (rankedProviders.length > 0) {
         const top = rankedProviders[0];
+        setSelectedProvider(top);
         setMessages((prev) => [
           ...prev,
           {
             id: `msg_${Date.now()}`,
             sender: 'doxo',
             type: 'PROVIDER_RECOMMENDATION',
-            contentKa: 'ვიპოვე საუკეთესო ვარიანტები:',
-            contentEn: 'Found verified providers:',
+            contentKa: intent.aiClarificationKa || (isKa ? 'ვიპოვე საუკეთესო ვარიანტები:' : 'Found verified providers:'),
+            contentEn: intent.aiClarificationEn || 'Found verified providers:',
             timestamp: getCurrentTime(),
             providerPayload: {
               primaryProvider: top,
@@ -298,6 +303,9 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
   const handleSelectProvider = (provider: Provider) => {
     setSelectedProvider(provider);
     const timeStr = getCurrentTime();
+    const taskTitle = currentIntent?.suggestedTitleKa || (isKa ? 'დავალების შესრულება' : 'Task Execution');
+    const taskTime = currentIntent?.preferredTime || (isKa ? 'ხვალ · 18:00' : 'Tomorrow · 18:00');
+    const taskLoc = currentIntent?.location || 'ი. ჭავჭავაძის გამზ. 37, ვაკე';
 
     setMessages((prev) => [
       ...prev,
@@ -305,15 +313,15 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
         id: `msg_approval_${Date.now()}`,
         sender: 'doxo',
         type: 'CONFIRMATION',
-        contentKa: 'ერთი დეტალი მჭირდება. შეგიძლია დაადასტურო?',
+        contentKa: isKa ? 'ერთი დეტალი მჭირდება. შეგიძლია დაადასტურო?' : 'One detail needed. Can you confirm?',
         contentEn: 'One detail needed. Can you confirm?',
         timestamp: timeStr,
         approvalPayload: {
-          taskTitleKa: isKa ? 'ბინის დალაგება და მოწესრიგება' : 'Home Cleaning',
+          taskTitleKa: taskTitle,
           provider,
-          scheduledTime: 'ხვალ · 18:00',
-          location: 'ი. ჭავჭავაძის გამზ. 37, ვაკე',
-          price: provider.pricing.min,
+          scheduledTime: taskTime,
+          location: taskLoc,
+          price: provider.pricing?.min || 50,
           currency: '₾',
           cancellationPolicyKa: 'უფასო გაუქმება ვიზიტამდე 2 საათით ადრე. თანხა წინასწარ არ ჩამოგეჭრება.',
         },
@@ -325,21 +333,29 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
   const handleApproveAction = () => {
     if (!selectedProvider) return;
 
-    const newTask = createTask('ბინის დასუფთავება', {
-      category: 'cleaning',
-      urgency: 'medium',
-      suggestedTitleKa: 'ბინის დალაგება',
-      suggestedTitleEn: 'Home Cleaning',
-      location: 'ი. ჭავჭავაძის გამზ. 37, ვაკე',
-      preferredTime: 'ხვალ · 18:00',
+    const taskTitleKa = currentIntent?.suggestedTitleKa || 'დავალება';
+    const taskTitleEn = currentIntent?.suggestedTitleEn || 'Task';
+    const taskCategory = currentIntent?.category || selectedProvider.categories?.[0] || 'cleaning';
+    const taskLocation = currentIntent?.location || 'ი. ჭავჭავაძის გამზ. 37, ვაკე';
+    const taskTime = currentIntent?.preferredTime || 'ხვალ · 18:00';
+    const taskMinPrice = selectedProvider.pricing?.min || currentIntent?.estimatedPrice.min || 50;
+    const taskMaxPrice = selectedProvider.pricing?.max || currentIntent?.estimatedPrice.max || 100;
+
+    const newTask = createTask(taskTitleKa, {
+      category: taskCategory,
+      urgency: currentIntent?.urgency || 'medium',
+      suggestedTitleKa: taskTitleKa,
+      suggestedTitleEn: taskTitleEn,
+      location: taskLocation,
+      preferredTime: taskTime,
       estimatedPrice: {
-        min: selectedProvider.pricing.min,
-        max: selectedProvider.pricing.max,
+        min: taskMinPrice,
+        max: taskMaxPrice,
         currency: '₾',
         marketStatus: 'normal_range',
         explanationText: 'საბაზრო ნორმა',
       },
-      timeSavedMinutes: 180,
+      timeSavedMinutes: currentIntent?.timeSavedMinutes || 120,
     }, selectedProvider.id);
 
     bookTask(newTask.id, selectedProvider.id);
@@ -350,8 +366,8 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
         id: `msg_success_${Date.now()}`,
         sender: 'doxo',
         type: 'SUCCESS',
-        contentKa: 'მზადაა. დაჯავშნილია. ნინო ბერიძეს დავუკავშირდი და ხვალ 18:00-ზე მოვა.',
-        contentEn: 'All set! Booked. Nino Beridze confirmed for tomorrow at 18:00.',
+        contentKa: `მზადაა. დაჯავშნილია. ${selectedProvider.nameKa || selectedProvider.name}-ს დავუკავშირდი და ${taskTime}-ზე მოვა.`,
+        contentEn: `All set! Booked. ${selectedProvider.name} confirmed for ${taskTime}.`,
         timestamp: getCurrentTime(),
       },
     ]);
@@ -366,7 +382,8 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
     if (!activePlan) return;
 
     const providers = DoxoStorage.getProviders();
-    const cleanProvider = providers.find(p => p.id === 'prov_nino_clean') || providers[2];
+    const cleanProvider = providers.find(p => p.id === 'prov_nino_clean') || providers[0] || selectedProvider;
+    const providerId = cleanProvider ? cleanProvider.id : 'prov_network_general';
 
     const masterTask = createTask(activePlan.summaryKa, {
       category: 'cleaning',
@@ -383,9 +400,11 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
         explanationText: 'ჯგუფირებული 3 სერვისის პაკეტი',
       },
       timeSavedMinutes: activePlan.bundleSavingsMinutes * activePlan.items.length,
-    }, cleanProvider.id);
+    }, providerId);
 
-    bookTask(masterTask.id, cleanProvider.id);
+    if (providerId) {
+      bookTask(masterTask.id, providerId);
+    }
 
     setMessages((prev) => [
       ...prev,
@@ -406,13 +425,16 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
 
   return (
     <div
+      className="doxo-workspace-modal"
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 1050,
-        background: 'var(--bg-app)',
+        backgroundColor: 'var(--bg-primary, #0D0E12)',
+        color: 'var(--text-primary)',
         display: 'flex',
         flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
       {/* 1. Top Bar */}
@@ -420,7 +442,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
         style={{
           height: '60px',
           borderBottom: '1px solid var(--border-subtle)',
-          background: 'var(--surface-primary)',
+          backgroundColor: 'var(--bg-surface, #15161B)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -474,7 +496,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
           display: 'grid',
           gridTemplateColumns: 'minmax(340px, 1fr) minmax(360px, 1.2fr) minmax(260px, 0.8fr)',
           overflow: 'hidden',
-          background: 'var(--bg-app)',
+          backgroundColor: 'var(--bg-primary, #0D0E12)',
         }}
         className="doxo-workspace-grid"
       >
@@ -486,7 +508,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
             flexDirection: 'column',
             height: '100%',
             overflow: 'hidden',
-            background: 'var(--surface-primary)',
+            backgroundColor: 'var(--bg-surface, #15161B)',
           }}
           className="doxo-chat-panel"
         >
@@ -497,6 +519,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
               padding: '20px',
               display: 'flex',
               flexDirection: 'column',
+              backgroundColor: 'var(--bg-surface, #15161B)',
             }}
           >
             {messages.map((msg) => (
@@ -531,7 +554,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
               display: 'flex',
               gap: '6px',
               overflowX: 'auto',
-              background: 'var(--surface-secondary)',
+              backgroundColor: 'var(--bg-surface-elevated, #1C1D23)',
             }}
           >
             <button
@@ -541,7 +564,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
                 padding: '4px 10px',
                 borderRadius: '12px',
                 border: '1px solid var(--border-subtle)',
-                background: 'var(--surface-primary)',
+                backgroundColor: 'var(--bg-surface, #15161B)',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -556,7 +579,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
                 padding: '4px 10px',
                 borderRadius: '12px',
                 border: '1px solid var(--border-subtle)',
-                background: 'var(--surface-primary)',
+                backgroundColor: 'var(--bg-surface, #15161B)',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -571,7 +594,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
                 padding: '4px 10px',
                 borderRadius: '12px',
                 border: '1px solid var(--border-subtle)',
-                background: 'var(--surface-primary)',
+                backgroundColor: 'var(--bg-surface, #15161B)',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -586,7 +609,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
             style={{
               padding: '16px',
               borderTop: '1px solid var(--border-subtle)',
-              background: 'var(--surface-primary)',
+              backgroundColor: 'var(--bg-surface, #15161B)',
             }}
           >
             <form
@@ -598,7 +621,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                background: 'var(--surface-secondary)',
+                backgroundColor: 'var(--bg-surface-elevated, #1C1D23)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-md)',
                 padding: '4px 8px',
@@ -689,6 +712,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
             flexDirection: 'column',
             gap: '20px',
             borderRight: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-primary, #0D0E12)',
           }}
           className="doxo-actions-panel"
         >
@@ -716,10 +740,23 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
               onViewVariants={() => handleSend(isKa ? 'ვარიანტები მაჩვენე' : 'Show options')}
               onConfirmPlan={handleConfirmPlan}
             />
+          ) : currentIntent && selectedProvider ? (
+            <ActionApprovalCard
+              titleKa={currentIntent.suggestedTitleKa}
+              titleEn={currentIntent.suggestedTitleEn}
+              provider={selectedProvider}
+              scheduledTime={currentIntent.preferredTime}
+              location={currentIntent.location}
+              price={selectedProvider.pricing?.min || currentIntent.estimatedPrice.min}
+              currency="₾"
+              cancellationPolicyKa="უფასო გაუქმება ვიზიტამდე 2 საათით ადრე. თანხა წინასწარ არ ჩამოგეჭრება."
+              onApprove={handleApproveAction}
+              onModify={() => handleSend(isKa ? 'სხვა დრო მინდა' : 'Need different time')}
+            />
           ) : (
             <div
               style={{
-                background: 'var(--surface-primary)',
+                backgroundColor: 'var(--bg-surface, #15161B)',
                 border: '1px dashed var(--border-subtle)',
                 borderRadius: 'var(--radius-lg)',
                 padding: '32px 20px',
@@ -742,7 +779,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
           {/* Transparent Cost Guarantee Note */}
           <div
             style={{
-              background: 'var(--surface-primary)',
+              backgroundColor: 'var(--bg-surface, #15161B)',
               borderRadius: 'var(--radius-md)',
               padding: '14px',
               border: '1px solid var(--border-subtle)',
@@ -771,7 +808,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
             display: 'flex',
             flexDirection: 'column',
             gap: '20px',
-            background: 'var(--surface-secondary)',
+            backgroundColor: 'var(--bg-surface, #15161B)',
           }}
           className="doxo-context-panel"
         >
@@ -787,7 +824,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
           {/* User Preferences Item */}
           <div
             style={{
-              background: 'var(--surface-primary)',
+              backgroundColor: 'var(--bg-surface-elevated, #1C1D23)',
               borderRadius: 'var(--radius-md)',
               padding: '12px 14px',
               border: '1px solid var(--border-subtle)',
@@ -807,7 +844,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
           {/* Address Item */}
           <div
             style={{
-              background: 'var(--surface-primary)',
+              backgroundColor: 'var(--bg-surface-elevated, #1C1D23)',
               borderRadius: 'var(--radius-md)',
               padding: '12px 14px',
               border: '1px solid var(--border-subtle)',
@@ -827,7 +864,7 @@ export const AIConversationWorkspace: React.FC<AIConversationWorkspaceProps> = (
           {/* Favorite Providers */}
           <div
             style={{
-              background: 'var(--surface-primary)',
+              backgroundColor: 'var(--bg-surface-elevated, #1C1D23)',
               borderRadius: 'var(--radius-md)',
               padding: '12px 14px',
               border: '1px solid var(--border-subtle)',

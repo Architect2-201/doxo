@@ -32,6 +32,183 @@ export interface AnalyzedIntent {
   structuredPlan?: StructuredPlan;
 }
 
+export const DEFAULT_VERIFIED_PROVIDERS: Provider[] = [
+  {
+    id: 'prov_levan_ac',
+    name: 'ლევან სირაძე',
+    nameKa: 'ლევან სირაძე',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    phone: '+995 599 44 55 66',
+    categories: ['ac_heating'],
+    serviceAreas: ['ვაკე', 'საბურთალო', 'მთაწმინდა', 'ვერა', 'დიღომი', 'ისანი'],
+    rating: 4.96,
+    reviewCount: 142,
+    completedJobs: 210,
+    verificationBadge: 'top_provider',
+    verificationStatus: 'verified',
+    completionRate: 99.1,
+    cancellationRate: 0.8,
+    responseTimeMinutes: 5,
+    pricingModel: 'price_range',
+    availability: 'available',
+    estimatedArrivalMinutes: 30,
+    pricing: { min: 70, max: 110, baseCalloutFee: 30, unit: 'სამუშაოზე' },
+    languages: ['ka', 'en', 'ru'],
+    bio: 'Certified AC & Heating HVAC Specialist with 8+ years experience.',
+    bioKa: 'კონდიცირებისა და გათბობის სისტემების სერტიფიცირებული ოსტატი 8 წლიანი გამოცდილებით.',
+    specialties: ['AC Diagnostics', 'Freon Refill', 'Deep Cleaning', 'Filter Replacement'],
+    specialtiesKa: ['კონდიციონერის წმენდა', 'ფრეონით დატენვა', 'დიაგნოსტიკა', 'ფილტრები'],
+    completedSimilarTasksCount: 88,
+    matchScore: 98,
+    documentsStatus: 'approved',
+  },
+  {
+    id: 'prov_nino_clean',
+    name: 'ნინო ბერიძე',
+    nameKa: 'ნინო ბერიძე',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    phone: '+995 599 11 22 33',
+    categories: ['cleaning'],
+    serviceAreas: ['ვაკე', 'საბურთალო', 'მთაწმინდა', 'ვერა', 'დიღომი'],
+    rating: 4.98,
+    reviewCount: 260,
+    completedJobs: 340,
+    verificationBadge: 'top_provider',
+    verificationStatus: 'verified',
+    completionRate: 99.5,
+    cancellationRate: 0.5,
+    responseTimeMinutes: 4,
+    pricingModel: 'price_range',
+    availability: 'available',
+    estimatedArrivalMinutes: 35,
+    pricing: { min: 70, max: 100, baseCalloutFee: 0, unit: 'სამუშაოზე' },
+    languages: ['ka', 'en'],
+    bio: 'Professional Home & Office deep cleaning expert using eco-friendly detergents.',
+    bioKa: 'ბინისა და ოფისის გენერალური დალაგების ექსპერტი ეკო-მეგობრული ხსნარებით.',
+    specialties: ['Deep Cleaning', 'Window Washing', 'Kitchen Detailing'],
+    specialtiesKa: ['გენერალური დასუფთავება', 'ფანჯრების წმენდა', 'სამზარეულოს დითეილინგი'],
+    completedSimilarTasksCount: 140,
+    matchScore: 99,
+    documentsStatus: 'approved',
+  },
+  {
+    id: 'prov_giorgi_plumb',
+    name: 'გიორგი მამულაშვილი',
+    nameKa: 'გიორგი მამულაშვილი',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    phone: '+995 599 22 33 44',
+    categories: ['plumbing'],
+    serviceAreas: ['ვაკე', 'საბურთალო', 'ვერა', 'მთაწმინდა', 'დიდუბე'],
+    rating: 4.95,
+    reviewCount: 185,
+    completedJobs: 245,
+    verificationBadge: 'top_provider',
+    verificationStatus: 'verified',
+    completionRate: 98.8,
+    cancellationRate: 1.0,
+    responseTimeMinutes: 6,
+    pricingModel: 'price_range',
+    availability: 'available',
+    estimatedArrivalMinutes: 25,
+    pricing: { min: 50, max: 85, baseCalloutFee: 25, unit: 'სამუშაოზე' },
+    languages: ['ka', 'en'],
+    bio: 'Certified Master Plumber with 10 years experience.',
+    bioKa: 'სანტექნიკოსი 10 წლიანი სტაჟით. გაჟონვის ლოკალიზაცია და მილების შეცვლა.',
+    specialties: ['Pipe Repair', 'Faucet Installation', 'Leak Diagnostics'],
+    specialtiesKa: ['მილების შეკეთება', 'ონკანის მონტაჟი', 'გაჟონვის აღმოფხვრა'],
+    completedSimilarTasksCount: 95,
+    matchScore: 97,
+    documentsStatus: 'approved',
+  },
+  {
+    id: 'prov_david_electric',
+    name: 'დავით კაპანაძე',
+    nameKa: 'დავით კაპანაძე',
+    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    phone: '+995 599 33 44 55',
+    categories: ['electrician'],
+    serviceAreas: ['ვაკე', 'საბურთალო', 'დიღომი', 'გლდანი', 'ისანი'],
+    rating: 4.94,
+    reviewCount: 160,
+    completedJobs: 215,
+    verificationBadge: 'top_provider',
+    verificationStatus: 'verified',
+    completionRate: 99.0,
+    cancellationRate: 0.9,
+    responseTimeMinutes: 5,
+    pricingModel: 'price_range',
+    availability: 'available',
+    estimatedArrivalMinutes: 30,
+    pricing: { min: 45, max: 85, baseCalloutFee: 25, unit: 'სამუშაოზე' },
+    languages: ['ka', 'en'],
+    bio: 'Certified electrician following modern safety codes.',
+    bioKa: 'სერტიფიცირებული ელექტრიკოსი. უსაფრთხოების თანამედროვე სტანდარტები.',
+    specialties: ['Short Circuit Diagnostics', 'Breaker Replacement', 'Chandelier Installation'],
+    specialtiesKa: ['მოკლე ჩართვა', 'ავტომატების შეცვლა', 'ჭაღის მონტაჟი'],
+    completedSimilarTasksCount: 82,
+    matchScore: 96,
+    documentsStatus: 'approved',
+  },
+  {
+    id: 'prov_bata_carwash',
+    name: 'ბათა კვარაცხელია',
+    nameKa: 'ბათა კვარაცხელია',
+    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
+    phone: '+995 599 55 66 77',
+    categories: ['car_wash'],
+    serviceAreas: ['ვაკე', 'საბურთალო', 'ვერა', 'მთაწმინდა', 'დიღომი'],
+    rating: 4.92,
+    reviewCount: 98,
+    completedJobs: 130,
+    verificationBadge: 'top_provider',
+    verificationStatus: 'verified',
+    completionRate: 98.5,
+    cancellationRate: 1.2,
+    responseTimeMinutes: 7,
+    pricingModel: 'price_range',
+    availability: 'available',
+    estimatedArrivalMinutes: 40,
+    pricing: { min: 30, max: 45, baseCalloutFee: 0, unit: 'სამუშაოზე' },
+    languages: ['ka', 'en'],
+    bio: 'Mobile detailing and eco waterless steam wash right at your doorstep.',
+    bioKa: 'მობილური ავტო-დითეილინგი ადგილზე მისვლით და პრემიუმ ქიმიით.',
+    specialties: ['Doorstep Wash', 'Interior Detailing', 'Liquid Wax Coating'],
+    specialtiesKa: ['ადგილზე რეცხვა', 'სალონის წმენდა', 'ცვილის დატანა'],
+    completedSimilarTasksCount: 64,
+    matchScore: 95,
+    documentsStatus: 'approved',
+  },
+  {
+    id: 'prov_irakli_courier',
+    name: 'ირაკლი გელოვანი',
+    nameKa: 'ირაკლი გელოვანი',
+    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+    phone: '+995 599 66 77 88',
+    categories: ['courier'],
+    serviceAreas: ['ვაკე', 'საბურთალო', 'მთაწმინდა', 'ვერა', 'დიდუბე', 'ისანი'],
+    rating: 4.97,
+    reviewCount: 310,
+    completedJobs: 450,
+    verificationBadge: 'top_provider',
+    verificationStatus: 'verified',
+    completionRate: 99.8,
+    cancellationRate: 0.2,
+    responseTimeMinutes: 2,
+    pricingModel: 'price_range',
+    availability: 'available',
+    estimatedArrivalMinutes: 20,
+    pricing: { min: 20, max: 35, baseCalloutFee: 15, unit: 'სამუშაოზე' },
+    languages: ['ka', 'en'],
+    bio: 'Fast express courier across Tbilisi.',
+    bioKa: 'სწრაფი და საიმედო ექსპრეს კურიერი თბილისის მასშტაბით.',
+    specialties: ['Express Errands', 'Documents', 'Same-Hour Delivery'],
+    specialtiesKa: ['დოკუმენტები', 'ამანათები', 'სწრაფი მიწოდება'],
+    completedSimilarTasksCount: 220,
+    matchScore: 98,
+    documentsStatus: 'approved',
+  },
+];
+
 export class AIService {
   /**
    * Generates a grounded multi-intent plan using real backend provider pricing & availability
@@ -47,9 +224,9 @@ export class AIService {
     }
 
     const providers = DoxoStorage.getProviders();
-    const nino = providers.find(p => p.id === 'prov_nino_clean') || providers[2];
-    const bata = providers.find(p => p.id === 'prov_bata_carwash') || providers[0];
-    const levan = providers.find(p => p.id === 'prov_levan_ac') || providers[4];
+    const nino = providers.find(p => p.id === 'prov_nino_clean') || DEFAULT_VERIFIED_PROVIDERS.find(p => p.id === 'prov_nino_clean')!;
+    const bata = providers.find(p => p.id === 'prov_bata_carwash') || DEFAULT_VERIFIED_PROVIDERS.find(p => p.id === 'prov_bata_carwash')!;
+    const levan = providers.find(p => p.id === 'prov_levan_ac') || DEFAULT_VERIFIED_PROVIDERS.find(p => p.id === 'prov_levan_ac')!;
 
     const items: PlanSubItem[] = [];
 
@@ -364,7 +541,16 @@ export class AIService {
     userPrefs?: UserPreferences
   ): Provider[] {
     const allProviders = DoxoStorage.getProviders();
-    const matched = allProviders.filter(p => p.categories.includes(category));
+    let matched = allProviders.filter(p => p.categories && p.categories.includes(category));
+
+    // Fallback to verified network providers if local storage has no active provider for this category
+    if (matched.length === 0) {
+      matched = DEFAULT_VERIFIED_PROVIDERS.filter(p => p.categories && p.categories.includes(category));
+    }
+
+    if (matched.length === 0) {
+      matched = DEFAULT_VERIFIED_PROVIDERS;
+    }
 
     // Calculate score and assign rationale
     const scored = matched.map(p => {

@@ -585,31 +585,45 @@
 /* --------------------------------------------------------------------------
    10. Modals & Responsive Mobile Bottom Sheets
    -------------------------------------------------------------------------- */
-.modal-overlay {
+.modal-overlay,
+.modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(13, 14, 18, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(13, 14, 18, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-16);
-  z-index: 100;
+  z-index: 1100;
   animation: fadeIn var(--duration-fast) var(--ease-doxo);
 }
 
-.modal-content {
+.modal-content,
+.modal-container {
   background: var(--bg-surface);
   border-radius: var(--radius-modal);
   padding: var(--space-24);
   width: 100%;
-  max-width: 520px;
+  max-width: 540px;
   box-shadow: var(--shadow-modal);
   border: 1px solid var(--border-subtle);
   animation: scaleUp var(--duration-fast) var(--ease-doxo);
   max-height: 90vh;
   overflow-y: auto;
+  color: var(--text-primary);
+}
+
+.doxo-workspace-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background-color: var(--bg-primary, #0D0E12) !important;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 @media (max-width: 639px) {
