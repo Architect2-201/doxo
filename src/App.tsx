@@ -57,12 +57,19 @@ import './styles/animations.css';
 
 const MainApp: React.FC = () => {
   const { language, t } = useLanguage();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const { activeTasks, dashboardTasks, tasks, createTask, bookTask } = useTasks();
 
   // Navigation & View States
   const [activePortal, setActivePortal] = useState<ActivePortal>('customer');
   const [activeTab, setActiveTab] = useState<NavTab>('home');
+
+  // Ensure admin portal is inaccessible to non-super-admins
+  useEffect(() => {
+    if (activePortal === 'admin' && !isSuperAdmin) {
+      setActivePortal('customer');
+    }
+  }, [activePortal, isSuperAdmin]);
   const [showLanding, setShowLanding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -291,7 +298,7 @@ const MainApp: React.FC = () => {
         {activePortal === 'provider' && <ProviderDashboardView />}
 
         {/* 2. ADMIN DASHBOARD VIEW */}
-        {activePortal === 'admin' && <AdminDashboardView />}
+        {activePortal === 'admin' && isSuperAdmin && <AdminDashboardView />}
 
         {/* 3. USER DASHBOARD PORTAL (personal control center) */}
         {activePortal === 'user' && <UserDashboardView />}

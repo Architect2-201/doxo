@@ -266,14 +266,16 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
               <IconBriefcase size={14} />
               <span>{language === 'ka' ? 'ოსტატი' : 'Provider'}</span>
             </button>
-            <button
-              onClick={() => handlePortalSelect('admin')}
-              className={`btn btn-sm ${activePortal === 'admin' ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ justifyContent: 'flex-start', fontSize: '12px', padding: '6px 10px', height: '34px' }}
-            >
-              <IconBarChart size={14} />
-              <span>{language === 'ka' ? 'ადმინი' : 'Admin'}</span>
-            </button>
+            {isSuperAdmin && (
+              <button
+                onClick={() => handlePortalSelect('admin')}
+                className={`btn btn-sm ${activePortal === 'admin' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ justifyContent: 'flex-start', fontSize: '12px', padding: '6px 10px', height: '34px' }}
+              >
+                <IconBarChart size={14} />
+                <span>{language === 'ka' ? 'ადმინი' : 'Admin'}</span>
+              </button>
+            )}
           </div>
         </div>
 

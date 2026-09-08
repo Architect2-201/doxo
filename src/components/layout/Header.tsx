@@ -131,28 +131,24 @@ export const Header: React.FC<HeaderProps> = ({
             <IconBriefcase size={13} />
             <span className="hide-mobile">{language === 'ka' ? 'ოსტატი' : 'Provider'}</span>
           </button>
-          <button
-            onClick={() => {
-              if (!isSuperAdmin) {
-                requirePermission('canAccessDecisionCenter', 'ადმინ პანელი შეზღუდულია', 'ადმინისტრატორის პანელზე წვდომა აქვს მხოლოდ მთავარ ადმინისტრატორს (nukrichachava9@gmail.com).');
-                return;
-              }
-              setActivePortal('admin');
-            }}
-            className={`btn btn-sm ${activePortal === 'admin' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{
-              borderRadius: 'var(--radius-pill)',
-              padding: '0 12px',
-              height: '28px',
-              minHeight: '28px',
-              fontSize: '12.5px',
-              fontWeight: activePortal === 'admin' ? 600 : 500,
-            }}
-            title="Admin KPIs"
-          >
-            <IconBarChart size={13} />
-            <span className="hide-mobile">{language === 'ka' ? 'ადმინი' : 'Admin'}</span>
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => setActivePortal('admin')}
+              className={`btn btn-sm ${activePortal === 'admin' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{
+                borderRadius: 'var(--radius-pill)',
+                padding: '0 12px',
+                height: '28px',
+                minHeight: '28px',
+                fontSize: '12.5px',
+                fontWeight: activePortal === 'admin' ? 600 : 500,
+              }}
+              title="Admin KPIs"
+            >
+              <IconBarChart size={13} />
+              <span className="hide-mobile">{language === 'ka' ? 'ადმინი' : 'Admin'}</span>
+            </button>
+          )}
         </div>
 
         {/* Notification Bell Icon */}

@@ -42,10 +42,25 @@ const CATEGORY_NAMES_KA: Record<ServiceCategory, string> = {
 
 export const AdminDashboardView: React.FC = () => {
   const { language } = useLanguage();
-  const { user, loginAsSuperAdmin, verifyUser, updateUserPermissions, setUserStatus } = useAuth();
+  const { user, isSuperAdmin, verifyUser, updateUserPermissions, setUserStatus } = useAuth();
   const { totalTimeSavedHours } = useTasks();
 
   const SUPER_ADMIN_EMAIL = 'nukrichachava9@gmail.com';
+
+  if (!isSuperAdmin) {
+    return (
+      <div style={{ padding: '80px 20px', textAlign: 'center', color: 'var(--text-primary)' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 700 }}>
+          {language === 'ka' ? '🔒 წვდომა შეზღუდულია' : '🔒 Access Denied'}
+        </h2>
+        <p style={{ color: 'var(--text-secondary)', marginTop: '8px', fontSize: '14px' }}>
+          {language === 'ka'
+            ? 'ადმინისტრატორის პანელი ხელმისაწვდომია მხოლოდ მთავარი ადმინისტრატორისთვის.'
+            : 'Admin console is restricted to the super administrator.'}
+        </p>
+      </div>
+    );
+  }
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
@@ -539,38 +554,22 @@ export const AdminDashboardView: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            {user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL ? (
-              <div
-                style={{
-                  background: 'rgba(16, 185, 129, 0.25)',
-                  border: '1px solid rgba(16, 185, 129, 0.5)',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: '#A7F3D0',
-                }}
-              >
-                <IconCheck size={16} /> სისტემა აქტიურია (Super Admin)
-              </div>
-            ) : (
-              <button
-                onClick={loginAsSuperAdmin}
-                className="btn"
-                style={{
-                  background: '#FDE047',
-                  color: '#1E293B',
-                  fontWeight: 800,
-                  border: 'none',
-                  fontSize: '13px',
-                }}
-              >
-                ⚡ შედით როგორც {SUPER_ADMIN_EMAIL}
-              </button>
-            )}
+            <div
+              style={{
+                background: 'rgba(16, 185, 129, 0.25)',
+                border: '1px solid rgba(16, 185, 129, 0.5)',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#A7F3D0',
+              }}
+            >
+              <IconCheck size={16} /> სისტემა აქტიურია (Super Admin)
+            </div>
 
             <button
               onClick={reloadData}

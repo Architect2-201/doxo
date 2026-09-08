@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   IconSparkles,
   IconShieldCheck,
@@ -18,6 +19,7 @@ interface GuideModalProps {
 
 export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
   const { language } = useLanguage();
+  const { isSuperAdmin } = useAuth();
   const [activeSection, setActiveSection] = useState<'flow' | 'ai' | 'pricing' | 'escrow' | 'features' | 'privacy'>('flow');
 
   if (!isOpen) return null;
@@ -389,14 +391,16 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                   </div>
                 </div>
 
-                <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px' }}>
-                  <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <IconBarChart size={16} /> ადმინის პანელი (Admin & Telemetry)
+                {isSuperAdmin && (
+                  <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px' }}>
+                    <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <IconBarChart size={16} /> ადმინის პანელი (Admin & Telemetry)
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      სისტემური ჯანმრთელობის შემოწმება (/health), პროვაიდერების ვერიფიკაცია, აუდიტის ლოგი და ავტომატური E2E ტესტები.
+                    </div>
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                    სისტემური ჯანმრთელობის შემოწმება (/health), პროვაიდერების ვერიფიკაცია, აუდიტის ლოგი და ავტომატური E2E ტესტები.
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}
