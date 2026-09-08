@@ -1,0 +1,798 @@
+/* ==========================================================================
+   DOXO Component Design System - Master Implementation (Stage 3)
+   Calm Intelligence, Restrained, Precise & Fully Responsive
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Application Layout Shell (3-Column Desktop / Adaptive Mobile)
+   -------------------------------------------------------------------------- */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--bg-primary);
+  position: relative;
+  transition: padding-left var(--duration-normal) var(--ease-doxo);
+  overflow-x: hidden;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 16px 16px 96px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .main-content {
+    padding: 24px 24px 80px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-layout-sidebar-expanded {
+    padding-left: var(--sidebar-width-expanded);
+  }
+  .app-layout-sidebar-collapsed {
+    padding-left: var(--sidebar-width-collapsed);
+  }
+  .app-layout-with-sidebar {
+    padding-left: var(--sidebar-width-expanded);
+  }
+  .main-content {
+    padding: 24px 36px 64px;
+  }
+}
+
+/* 3-Column Context Panel for Wide Screens (1440px+) */
+@media (min-width: 1440px) {
+  .app-layout-with-context {
+    padding-right: var(--context-panel-width);
+  }
+}
+
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. Application Header (64–72px Desktop / 56–64px Mobile)
+   -------------------------------------------------------------------------- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height-mobile);
+  min-height: var(--header-height-mobile);
+  padding: 0 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-24);
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .app-header {
+    height: var(--header-height-desktop);
+    min-height: var(--header-height-desktop);
+    padding: 0;
+    margin-bottom: var(--space-32);
+  }
+  .brand-logo-group {
+    display: none !important;
+  }
+  .header-actions {
+    margin-left: auto;
+  }
+}
+
+.brand-logo-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .header-actions {
+    gap: var(--space-12);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. Desktop Sidebar (Collapsible 250px vs 72px)
+   -------------------------------------------------------------------------- */
+.app-sidebar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width-expanded);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  padding: var(--space-20) var(--space-16);
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 40;
+  transition: width var(--duration-normal) var(--ease-doxo), padding var(--duration-normal) var(--ease-doxo);
+}
+
+.app-sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+  padding: var(--space-20) var(--space-8);
+}
+
+@media (min-width: 1024px) {
+  .app-sidebar {
+    display: flex;
+  }
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-20);
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-btn);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 14.5px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 48px;
+  transition: all var(--duration-fast) var(--ease-doxo);
+  position: relative;
+  text-decoration: none;
+  width: 100%;
+}
+
+.app-sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 0;
+  width: 48px;
+  margin: 0 auto;
+}
+
+.sidebar-link:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+/* Active navigation per Spec: subtle light purple bg, purple icon, primary text */
+.sidebar-link.active {
+  background: var(--accent-light);
+  color: var(--text-primary);
+  font-weight: 600;
+  border: 1px solid var(--accent-border);
+}
+
+.sidebar-link.active svg {
+  color: var(--accent-primary);
+}
+
+.sidebar-link-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-primary);
+  color: #FFFFFF;
+}
+
+.app-sidebar.collapsed .sidebar-link-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 2px 5px;
+  font-size: 9.5px;
+}
+
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-doxo);
+}
+
+.sidebar-collapse-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+/* --------------------------------------------------------------------------
+   4. Desktop Right Context Panel (280–320px)
+   -------------------------------------------------------------------------- */
+.app-context-panel {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--context-panel-width);
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-subtle);
+  padding: var(--space-24) var(--space-20);
+  flex-direction: column;
+  gap: var(--space-20);
+  overflow-y: auto;
+  z-index: 30;
+}
+
+@media (min-width: 1440px) {
+  .app-context-panel {
+    display: flex;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. Mobile Bottom Navigation (4 essential items + safe area)
+   -------------------------------------------------------------------------- */
+.mobile-bottom-nav {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-nav-height);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-subtle);
+  padding: 0 var(--space-16) max(8px, env(safe-area-inset-bottom));
+  justify-content: space-around;
+  align-items: center;
+  z-index: 50;
+}
+
+@media (min-width: 1024px) {
+  .mobile-bottom-nav {
+    display: none;
+  }
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  min-width: 54px;
+  min-height: var(--touch-target-min);
+  padding: 4px var(--space-8);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease-doxo);
+}
+
+.bottom-nav-item.active {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   6. Buttons & Interactive Controls (Radius: 12–14px)
+   -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: 10px var(--space-16);
+  min-height: 40px;
+  border-radius: var(--radius-btn);
+  font-size: 14.5px;
+  font-weight: 600;
+  transition: all var(--duration-fast) var(--ease-doxo);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn-primary {
+  background-color: var(--accent-primary);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-medium);
+}
+
+.btn-ghost {
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.btn-ghost:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.btn-sm {
+  min-height: 32px;
+  padding: 6px var(--space-12);
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-lg {
+  min-height: 48px;
+  padding: 12px var(--space-24);
+  font-size: 15.5px;
+  border-radius: var(--radius-btn);
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  transition: all var(--duration-fast) var(--ease-doxo);
+}
+
+.btn-icon:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+/* --------------------------------------------------------------------------
+   7. Cards & Containers (Cards: 18–20px radius, Large containers: 24px)
+   -------------------------------------------------------------------------- */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  padding: var(--space-20);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--duration-fast) var(--ease-doxo);
+}
+
+.card-hoverable {
+  transition: border-color var(--duration-fast) var(--ease-doxo), background-color var(--duration-fast) var(--ease-doxo);
+}
+
+.card-hoverable:hover {
+  border-color: var(--border-medium);
+  background-color: var(--bg-surface-hover);
+}
+
+/* --------------------------------------------------------------------------
+   8. AI Command Center Card (Input Container: 24px radius)
+   -------------------------------------------------------------------------- */
+.ai-hero-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-16) var(--space-20);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: var(--space-16);
+  transition: border-color var(--duration-fast) var(--ease-doxo), box-shadow var(--duration-fast) var(--ease-doxo);
+}
+
+.ai-hero-card:focus-within,
+.ai-hero-card.focused {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.ai-hero-textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  resize: none;
+  font-size: 15.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+}
+
+.ai-hero-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.ai-hero-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--border-subtle);
+  gap: var(--space-12);
+}
+
+.ai-input-media-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* Quick Action Suggestion Chips */
+.chip-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: var(--space-8) 0 var(--space-24);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chip-group::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .chip-group {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6, 6px);
+  padding: 6px var(--space-16);
+  min-height: 34px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all var(--duration-fast) var(--ease-doxo);
+}
+
+.chip:hover {
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+/* --------------------------------------------------------------------------
+   9. Badges, Pills & Status Indicators
+   -------------------------------------------------------------------------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 3px var(--space-8);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.brand-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-light);
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Status Indicator Dot with Subtle Pulse */
+.status-dot-pulse {
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+}
+
+/* Priority Indicators */
+.badge-priority-low {
+  background: rgba(108, 110, 120, 0.12);
+  color: var(--text-muted);
+  border: 1px solid rgba(108, 110, 120, 0.2);
+}
+
+.badge-priority-normal {
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+  border: 1px solid rgba(76, 141, 255, 0.25);
+}
+
+.badge-priority-important {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border: 1px solid rgba(217, 148, 40, 0.25);
+}
+
+.badge-priority-urgent {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border: 1px solid rgba(217, 87, 87, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   10. Modals & Responsive Mobile Bottom Sheets
+   -------------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 14, 18, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  z-index: 100;
+  animation: fadeIn var(--duration-fast) var(--ease-doxo);
+}
+
+.modal-content {
+  background: var(--bg-surface);
+  border-radius: var(--radius-modal);
+  padding: var(--space-24);
+  width: 100%;
+  max-width: 520px;
+  box-shadow: var(--shadow-modal);
+  border: 1px solid var(--border-subtle);
+  animation: scaleUp var(--duration-fast) var(--ease-doxo);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 639px) {
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-content {
+    border-radius: 24px 24px 0 0;
+    max-width: 100%;
+    max-height: 90vh;
+    padding: var(--space-16) var(--space-20) max(24px, env(safe-area-inset-bottom));
+    animation: slideUpSheet var(--duration-normal) var(--ease-doxo);
+    border-bottom: none;
+  }
+}
+
+.sheet-grab-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-medium);
+  margin: 0 auto var(--space-16);
+  display: block;
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.98); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   11. Universal Command Palette (Cmd/Ctrl + K)
+   -------------------------------------------------------------------------- */
+.command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 14, 18, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  padding-left: var(--space-16);
+  padding-right: var(--space-16);
+  z-index: 120;
+}
+
+.command-palette-card {
+  width: 100%;
+  max-width: 580px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+  animation: scaleUp var(--duration-fast) var(--ease-doxo);
+}
+
+.command-palette-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-16) var(--space-20);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.command-palette-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 16px;
+  outline: none;
+  font-family: var(--font-family);
+}
+
+.command-palette-results {
+  max-height: 340px;
+  overflow-y: auto;
+  padding: var(--space-8);
+}
+
+.command-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-doxo);
+}
+
+.command-palette-item:hover,
+.command-palette-item.active {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.command-palette-shortcut {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  background: var(--bg-surface-elevated);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+
+/* --------------------------------------------------------------------------
+   12. Skeleton Loading States & Empty States
+   -------------------------------------------------------------------------- */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-elevated) 25%,
+    var(--bg-surface-hover) 50%,
+    var(--bg-surface-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.8s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeletonPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.empty-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-40) var(--space-24);
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-card);
+  gap: var(--space-12);
+}
+
+/* --------------------------------------------------------------------------
+   13. Stage 4 AI Conversation Workspace Responsive Layout
+   -------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .doxo-workspace-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  .doxo-chat-panel {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-subtle);
+    min-height: 400px;
+  }
+
+  .doxo-actions-panel {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .doxo-context-panel {
+    display: none !important;
+  }
+}
+
+@keyframes highlightPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(98, 91, 255, 0.4); }
+  50% { transform: scale(1.01); box-shadow: 0 0 12px 2px rgba(98, 91, 255, 0.25); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(98, 91, 255, 0); }
+}
+

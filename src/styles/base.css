@@ -1,0 +1,171 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  min-height: 100%;
+  width: 100%;
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  transition: background-color var(--duration-normal) var(--ease-doxo), color var(--duration-normal) var(--ease-doxo);
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   Typography Hierarchy per Stage 3 Spec
+   Calm, Precise, Optimized for Georgian Typography (Noto Sans Georgian)
+   ========================================================================== */
+
+/* Hero: 48px / 56px, weight 600 */
+h1, .hero-title {
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: clamp(38px, 5.5vw, 56px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+/* Desktop page title: 28px / 34px, weight 600 */
+h2, .page-title {
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+
+@media (max-width: 639px) {
+  /* Mobile page title: 24px / 30px, weight 600 */
+  h2, .page-title {
+    font-size: 24px;
+    line-height: 30px;
+  }
+}
+
+/* Section title: 20px / 26px, weight 600 */
+h3, .section-title {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+/* Card title: 16–18px, weight 600 */
+h4, .card-title {
+  font-size: 17px;
+  line-height: 23px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Body: 15–16px, line-height 1.5 */
+p, .body-text {
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.body-sm {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* Metadata: 13px, line-height 1.4 */
+.metadata-text {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Small labels: 12px */
+.small-label {
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Georgian Text Precision Utilities
+   ========================================================================== */
+.georgian-text {
+  font-family: var(--font-family);
+  text-rendering: optimizeLegibility;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* Flex item helper to prevent text overlapping or blowing out parents */
+.flex-text-container {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Accessible Interactive Elements */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: inherit;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Subtle, Grounded Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
