@@ -1638,6 +1638,31 @@ export const AdminDashboardView: React.FC = () => {
               </table>
             </div>
           </div>
+
+          {/* Clean Slate Action Card */}
+          <div className="card" style={{ padding: '18px 20px', marginTop: '18px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 800, color: 'var(--status-danger)' }}>
+                  🧹 სისტემის სუფთა ფურცლიდან დაწყება (Clean Slate)
+                </h4>
+                <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                  შლის ძველ სატესტო/მოგონილ მონაცემებს და სისტემას ტოვებს 100%-ით სუფთა რეჟიმში (რჩება მხოლოდ სუპერ ადმინი {SUPER_ADMIN_EMAIL}).
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (window.confirm('ნამდვილად გსურთ სატესტო მონაცემების გასუფთავება და სუფთა ფურცლიდან დაწყება?')) {
+                    DoxoStorage.resetToCleanSlate();
+                  }
+                }}
+                className="btn btn-sm"
+                style={{ background: '#EF4444', color: '#fff', border: 'none', fontWeight: 700 }}
+              >
+                სუფთა ფურცლიდან დაწყება
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

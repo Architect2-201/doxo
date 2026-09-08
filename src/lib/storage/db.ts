@@ -50,6 +50,42 @@ const STORAGE_KEYS = {
   ANALYTICS: 'doxo_analytics',
 };
 
+const STORAGE_CLEAN_SLATE_KEY = 'doxo_clean_slate_v3_active';
+
+// Auto-purge old mock dummy data on initial load
+function runCleanSlatePurge() {
+  if (typeof window === 'undefined') return;
+  try {
+    if (localStorage.getItem(STORAGE_CLEAN_SLATE_KEY) !== 'true') {
+      // Remove all legacy mock tables
+      Object.values(STORAGE_KEYS).forEach(k => {
+        localStorage.removeItem(k);
+      });
+
+      // If stored auth user is not super admin, clear it
+      const saved = localStorage.getItem('doxo_auth_user');
+      if (saved) {
+        try {
+          const u = JSON.parse(saved);
+          if (u.email?.toLowerCase() !== 'nukrichachava9@gmail.com') {
+            localStorage.removeItem('doxo_auth_user');
+            localStorage.setItem('doxo_is_authenticated', 'false');
+          }
+        } catch {
+          localStorage.removeItem('doxo_auth_user');
+        }
+      }
+
+      localStorage.setItem(STORAGE_CLEAN_SLATE_KEY, 'true');
+    }
+  } catch (e) {
+    console.warn('Storage clean slate error:', e);
+  }
+}
+
+// Run immediately
+runCleanSlatePurge();
+
 export class DoxoStorage {
   private static getItem<T>(key: string, fallback: T): T {
     try {
@@ -67,6 +103,15 @@ export class DoxoStorage {
     } catch (e) {
       console.error(`Storage set error for ${key}:`, e);
     }
+  }
+
+  // Force clean slate reset
+  static resetToCleanSlate(): void {
+    if (typeof window === 'undefined') return;
+    Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+    localStorage.removeItem('doxo_auth_user');
+    localStorage.setItem(STORAGE_CLEAN_SLATE_KEY, 'true');
+    window.location.reload();
   }
 
   // User
