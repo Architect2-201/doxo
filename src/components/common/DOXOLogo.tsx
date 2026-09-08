@@ -107,11 +107,18 @@ export const DOXOLogo: React.FC<DOXOLogoProps> = ({
         {/* Living atmospheric ambient neon aura */}
         <div className="doxo-neon-aura" />
 
-        {/* Exact Logo Artwork */}
+        {/* Exact Logo Artwork - Theme Adaptive */}
         <img
-          src={imageSrc}
+          src={variant === 'emblem' ? '/doxo-emblem-trans.png' : '/doxo-icon-trans.png'}
           alt="DOXO Logo"
-          className="doxo-neon-img"
+          className="doxo-neon-img doxo-neon-img-dark"
+          draggable={false}
+          loading="eager"
+        />
+        <img
+          src={variant === 'emblem' ? '/doxo-emblem-trans.png' : '/doxo-icon-light.png'}
+          alt="DOXO Logo"
+          className="doxo-neon-img doxo-neon-img-light"
           draggable={false}
           loading="eager"
         />
@@ -129,6 +136,16 @@ export const DOXOLogo: React.FC<DOXOLogoProps> = ({
           >
             DOXO
           </span>
+          {showSubtitle && (
+            <span
+              className="doxo-neon-subtitle"
+              style={{
+                fontSize: subtitleFontSize,
+              }}
+            >
+              ინტელექტუალური სამუშაო სივრცე
+            </span>
+          )}
         </div>
       )}
     </div>
