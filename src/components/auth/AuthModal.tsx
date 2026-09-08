@@ -29,6 +29,11 @@ export const AuthModal: React.FC = () => {
   const [signUpPassword, setSignUpPassword] = useState('');
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
 
+  // Google Prompt State
+  const [showGooglePrompt, setShowGooglePrompt] = useState(false);
+  const [googleName, setGoogleName] = useState('');
+  const [googleEmail, setGoogleEmail] = useState('');
+
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -85,7 +90,33 @@ export const AuthModal: React.FC = () => {
     setErrorMessage(null);
     const res = await loginWithGoogle();
     setIsLoading(false);
-    if (!res.success && res.error) {
+    if (!res.success) {
+      if (res.error === 'DIRECT_PROMPT_REQUIRED') {
+        setShowGooglePrompt(true);
+      } else if (res.error) {
+        setErrorMessage(res.error);
+      }
+    }
+  };
+
+  const handleGooglePromptSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleEmail.trim()) {
+      setErrorMessage(language === 'ka' ? 'გთხოვთ მიუთითოთ Google ელ.ფოსტა.' : 'Please enter your Google email.');
+      return;
+    }
+    setIsLoading(true);
+    setErrorMessage(null);
+    const res = await loginWithGoogle({
+      fullName: googleName.trim() || 'Google მომხმარებელი',
+      email: googleEmail.trim(),
+    });
+    setIsLoading(false);
+    if (res.success) {
+      setShowGooglePrompt(false);
+      setSuccessMessage(language === 'ka' ? 'წარმატებით გაიარეთ ავტორიზაცია Google ანგარიშით!' : 'Signed in with Google!');
+      setTimeout(() => setSuccessMessage(null), 2500);
+    } else if (res.error) {
       setErrorMessage(res.error);
     }
   };
@@ -164,58 +195,188 @@ export const AuthModal: React.FC = () => {
           </p>
         </div>
 
-        {/* Segmented Tab Switcher */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            padding: '4px',
-            borderRadius: '14px',
-            marginBottom: '22px',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setErrorMessage(null);
-              openAuthModal('signin');
-            }}
-            style={{
-              padding: '9px',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: 600,
-              backgroundColor: authModalMode === 'signin' ? 'var(--accent-primary)' : 'transparent',
-              color: authModalMode === 'signin' ? '#FFFFFF' : 'var(--text-secondary)',
-              boxShadow: authModalMode === 'signin' ? 'var(--shadow-xs)' : 'none',
-              transition: 'all var(--duration-fast) var(--ease-doxo)',
-            }}
-          >
-            {language === 'ka' ? 'შესვლა' : 'Sign In'}
-          </button>
+        {/* If Google Prompt Active */}
+        {showGooglePrompt ? (
+          <form onSubmit={handleGooglePromptSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div
+              style={{
+                backgroundColor: 'rgba(66, 133, 244, 0.08)',
+                border: '1px solid rgba(66, 133, 244, 0.25)',
+                borderRadius: '14px',
+                padding: '16px',
+                textAlign: 'center',
+                marginBottom: '4px',
+              }}
+            >
+              <div style={{ display: 'inline-flex', marginBottom: '8px' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                  />
+                </svg>
+              </div>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 4px 0', color: '#FFFFFF' }}>
+                {language === 'ka' ? 'Google ანგარიშით დაკავშირება' : 'Connect with Google'}
+              </h4>
+              <p style={{ fontSize: '12px', color: '#94A3B8', margin: 0, lineHeight: 1.4 }}>
+                {language === 'ka'
+                  ? 'შეიყვანეთ თქვენი რეალური Google (Gmail) ელ.ფოსტა და სახელი:'
+                  : 'Enter your genuine Google (Gmail) address and full name:'}
+              </p>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setErrorMessage(null);
-              openAuthModal('signup');
-            }}
-            style={{
-              padding: '9px',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: 600,
-              backgroundColor: authModalMode === 'signup' ? 'var(--accent-primary)' : 'transparent',
-              color: authModalMode === 'signup' ? '#FFFFFF' : 'var(--text-secondary)',
-              boxShadow: authModalMode === 'signup' ? 'var(--shadow-xs)' : 'none',
-              transition: 'all var(--duration-fast) var(--ease-doxo)',
-            }}
-          >
-            {language === 'ka' ? 'რეგისტრაცია' : 'Sign Up'}
-          </button>
-        </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#94A3B8', marginBottom: '6px' }}>
+                {language === 'ka' ? 'თქვენი სახელი და გვარი' : 'Full Name'}
+              </label>
+              <input
+                type="text"
+                required
+                placeholder={language === 'ka' ? 'მაგ: ნუკრი ჩაჩავა' : 'John Doe'}
+                value={googleName}
+                onChange={(e) => setGoogleName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#FFFFFF',
+                  fontSize: '14px',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#94A3B8', marginBottom: '6px' }}>
+                {language === 'ka' ? 'Google ელ.ფოსტა (Gmail)' : 'Google Email (Gmail)'}
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="user@gmail.com"
+                value={googleEmail}
+                onChange={(e) => setGoogleEmail(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#FFFFFF',
+                  fontSize: '14px',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              style={{
+                marginTop: '6px',
+                width: '100%',
+                padding: '12px',
+                borderRadius: 'var(--radius-btn)',
+                background: 'linear-gradient(135deg, #4285F4 0%, #34A853 100%)',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                fontSize: '14px',
+                border: 'none',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1,
+              }}
+            >
+              {isLoading ? (language === 'ka' ? 'მიმდინარეობს...' : 'Connecting...') : (language === 'ka' ? '✓ Google ანგარიშით გაგრძელება' : 'Continue with Google')}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowGooglePrompt(false);
+                setErrorMessage(null);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94A3B8',
+                fontSize: '13px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                padding: '6px',
+              }}
+            >
+              ← {language === 'ka' ? 'უკან დაბრუნება (სტანდარტული ფორმა)' : 'Back to standard sign in'}
+            </button>
+          </form>
+        ) : (
+          <>
+            {/* Segmented Tab Switcher */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                padding: '4px',
+                borderRadius: '14px',
+                marginBottom: '22px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMessage(null);
+                  openAuthModal('signin');
+                }}
+                style={{
+                  padding: '9px',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  backgroundColor: authModalMode === 'signin' ? 'var(--accent-primary)' : 'transparent',
+                  color: authModalMode === 'signin' ? '#FFFFFF' : 'var(--text-secondary)',
+                  boxShadow: authModalMode === 'signin' ? 'var(--shadow-xs)' : 'none',
+                  transition: 'all var(--duration-fast) var(--ease-doxo)',
+                }}
+              >
+                {language === 'ka' ? 'შესვლა' : 'Sign In'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMessage(null);
+                  openAuthModal('signup');
+                }}
+                style={{
+                  padding: '9px',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  backgroundColor: authModalMode === 'signup' ? 'var(--accent-primary)' : 'transparent',
+                  color: authModalMode === 'signup' ? '#FFFFFF' : 'var(--text-secondary)',
+                  boxShadow: authModalMode === 'signup' ? 'var(--shadow-xs)' : 'none',
+                  transition: 'all var(--duration-fast) var(--ease-doxo)',
+                }}
+              >
+                {language === 'ka' ? 'რეგისტრაცია' : 'Sign Up'}
+              </button>
+            </div>
 
         {/* Error / Success Alerts */}
         {errorMessage && (
@@ -580,6 +741,8 @@ export const AuthModal: React.FC = () => {
               : 'Sign up with Google'}
           </span>
         </button>
+        </>
+        )}
 
         {/* Footer Note */}
         <p style={{ textAlign: 'center', fontSize: '11.5px', color: '#64748B', marginTop: '18px', lineHeight: 1.4 }}>

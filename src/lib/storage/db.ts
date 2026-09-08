@@ -59,35 +59,50 @@ export interface UserCredentialRecord {
   createdAt: string;
 }
 
-const STORAGE_CLEAN_SLATE_KEY = 'doxo_clean_slate_v4_auth';
+const STORAGE_CLEAN_SLATE_KEY = 'doxo_clean_slate_v6_purge_mock_giorgi';
 
-// Auto-purge old mock dummy data on initial load
+// Auto-purge old mock dummy data and any remnant of Giorgi Dolidze on initial load
 function runCleanSlatePurge() {
   if (typeof window === 'undefined') return;
   try {
-    if (localStorage.getItem(STORAGE_CLEAN_SLATE_KEY) !== 'true') {
-      // Remove all legacy mock tables
-      Object.values(STORAGE_KEYS).forEach(k => {
-        localStorage.removeItem(k);
-      });
-
-      // Clear any fabricated non-admin auth user
-      const saved = localStorage.getItem('doxo_auth_user');
-      if (saved) {
-        try {
-          const u = JSON.parse(saved);
-          if (u.email?.toLowerCase() !== 'nukrichachava9@gmail.com') {
-            localStorage.removeItem('doxo_auth_user');
-            localStorage.setItem('doxo_is_authenticated', 'false');
-          }
-        } catch {
+    // 1. Unconditionally clear any fabricated user like Giorgi Dolidze from auth storage
+    const saved = localStorage.getItem('doxo_auth_user');
+    if (saved) {
+      try {
+        const u = JSON.parse(saved);
+        if (
+          u.email?.includes('dolidze') ||
+          u.firstName === 'გიორგი' ||
+          u.email?.toLowerCase() !== 'nukrichachava9@gmail.com'
+        ) {
           localStorage.removeItem('doxo_auth_user');
+          localStorage.removeItem('doxo_user');
           localStorage.setItem('doxo_is_authenticated', 'false');
         }
-      } else {
+      } catch {
+        localStorage.removeItem('doxo_auth_user');
+        localStorage.removeItem('doxo_user');
         localStorage.setItem('doxo_is_authenticated', 'false');
       }
+    }
 
+    // 2. Clear from doxo_users array if present
+    const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (rawUsers) {
+      try {
+        const parsed = JSON.parse(rawUsers);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter((u: any) => !u.email?.includes('dolidze') && u.firstName !== 'გიორგი');
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filtered));
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (localStorage.getItem(STORAGE_CLEAN_SLATE_KEY) !== 'true') {
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem(STORAGE_KEYS.CREDENTIALS);
       localStorage.setItem(STORAGE_CLEAN_SLATE_KEY, 'true');
     }
   } catch (e) {

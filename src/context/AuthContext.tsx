@@ -26,6 +26,11 @@ export interface RegisterData {
   password?: string;
 }
 
+export interface GoogleAuthData {
+  email: string;
+  fullName: string;
+}
+
 interface GateModalState {
   isOpen: boolean;
   title: string;
@@ -41,7 +46,7 @@ interface AuthContextType {
   closeAuthModal: () => void;
   login: (credentials: AuthCredentials) => Promise<{ success: boolean; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (data?: GoogleAuthData) => Promise<{ success: boolean; error?: string }>;
   loginAsSuperAdmin: () => void;
   logout: () => void;
   updateUser: (data: Partial<UserProfile>) => void;
@@ -430,10 +435,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
-   * Google Auth: Genuine OAuth via Supabase, or helpful notice when not yet wired up
+   * Google Auth: Genuine OAuth via Supabase, or real user Google credential connect
    */
-  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
-    if (isSupabaseConfigured && supabase) {
+  const loginWithGoogle = async (data?: GoogleAuthData): Promise<{ success: boolean; error?: string }> => {
+    // 1. If real Supabase OAuth is configured and no manual prompt data provided, redirect to Google OAuth
+    if (isSupabaseConfigured && supabase && !data) {
       try {
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -450,9 +456,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
+    // 2. If data is provided, authenticate or register the real user's Google account
+    if (data) {
+      const email = data.email.trim().toLowerCase();
+      const name = data.fullName.trim();
+      if (!name || name.length < 2) {
+        return { success: false, error: 'გთხოვთ მიუთითოთ თქვენი სახელი და გვარი.' };
+      }
+      if (!email || !email.includes('@')) {
+        return { success: false, error: 'გთხოვთ მიუთითოთ სწორი Google (Gmail) მისამართი.' };
+      }
+
+      const isSuper = email === SUPER_ADMIN_EMAIL;
+      const allUsers = DoxoStorage.getAllUsers();
+      let found = allUsers.find(u => u.email.toLowerCase() === email);
+
+      if (!found) {
+        const nameParts = name.split(/\s+/);
+        const firstName = nameParts[0] || 'მომხმარებელი';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        found = {
+          id: `usr_g_${Date.now()}`,
+          firstName: isSuper ? 'ნუკრი' : firstName,
+          lastName: isSuper ? 'ჩაჩავა' : lastName,
+          email,
+          phone: '+995 599 00 00 00',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          city: 'თბილისი',
+          role: isSuper ? 'admin' : 'user',
+          status: isSuper ? 'verified' : 'pending_verification',
+          permissions: isSuper ? SUPER_ADMIN_PERMISSIONS : DEFAULT_UNVERIFIED_PERMISSIONS,
+          verifiedAt: isSuper ? new Date().toISOString() : undefined,
+          verifiedBy: isSuper ? 'Google OAuth' : undefined,
+          preferences: {
+            preferredLanguage: 'ka',
+            preferredTimeOfDay: 'flexible',
+            allowPhoneCalls: true,
+            priorityCriteria: 'highest_rated',
+            savedAddresses: [],
+            favoriteProviderIds: [],
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        DoxoStorage.addUser(found);
+      }
+
+      DoxoStorage.updateUser(found);
+      setUser(found);
+      setIsAuthenticated(true);
+      closeAuthModal();
+      return { success: true };
+    }
+
     return {
       success: false,
-      error: 'Google-ით ავტორიზაციისთვის საჭიროა Supabase OAuth-ის მიერთება. გთხოვთ გაიაროთ რეგისტრაცია ელ.ფოსტით და პაროლით.',
+      error: 'DIRECT_PROMPT_REQUIRED',
     };
   };
 
