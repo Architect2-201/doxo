@@ -32,6 +32,17 @@ export const initialUser: UserProfile = {
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   city: 'თბილისი',
   role: 'admin',
+  status: 'verified',
+  permissions: {
+    canUseAI: true,
+    canBookTasks: true,
+    canViewCatalog: true,
+    canAccessDecisionCenter: true,
+    canAccessWallet: true,
+    canAccessProviderPortal: true,
+  },
+  verifiedAt: '2026-08-01T10:00:00Z',
+  verifiedBy: 'System',
   isBlocked: false,
   preferences: {
     preferredLanguage: 'ka',
@@ -60,10 +71,10 @@ export const initialUser: UserProfile = {
       },
     ],
     defaultAddressId: 'addr_home',
-    favoriteProviderIds: ['prov_nino_clean', 'prov_giorgi_plumb'],
+    favoriteProviderIds: ['p_giorgi_m', 'p_levan_s'],
   },
   createdAt: '2026-08-01T10:00:00Z',
-  updatedAt: '2026-09-04T08:00:00Z',
+  updatedAt: '2026-09-04T12:00:00Z',
 };
 
 export const seedUsers: UserProfile[] = [
@@ -77,6 +88,17 @@ export const seedUsers: UserProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
     city: 'თბილისი',
     role: 'user',
+    status: 'verified',
+    permissions: {
+      canUseAI: true,
+      canBookTasks: true,
+      canViewCatalog: true,
+      canAccessDecisionCenter: true,
+      canAccessWallet: true,
+      canAccessProviderPortal: false,
+    },
+    verifiedAt: '2026-08-11T12:00:00Z',
+    verifiedBy: 'ნუკრი ჩაჩავა',
     isBlocked: false,
     preferences: {
       preferredLanguage: 'ka',
@@ -100,6 +122,15 @@ export const seedUsers: UserProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
     city: 'თბილისი',
     role: 'user',
+    status: 'pending_verification', // New unverified user
+    permissions: {
+      canUseAI: false,
+      canBookTasks: false,
+      canViewCatalog: true,
+      canAccessDecisionCenter: false,
+      canAccessWallet: false,
+      canAccessProviderPortal: false,
+    },
     isBlocked: false,
     preferences: {
       preferredLanguage: 'ka',
@@ -123,6 +154,17 @@ export const seedUsers: UserProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     city: 'თბილისი',
     role: 'provider',
+    status: 'verified',
+    permissions: {
+      canUseAI: true,
+      canBookTasks: true,
+      canViewCatalog: true,
+      canAccessDecisionCenter: true,
+      canAccessWallet: true,
+      canAccessProviderPortal: true,
+    },
+    verifiedAt: '2026-08-06T10:00:00Z',
+    verifiedBy: 'ნუკრი ჩაჩავა',
     isBlocked: false,
     preferences: {
       preferredLanguage: 'ka',
@@ -144,6 +186,15 @@ export const seedUsers: UserProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
     city: 'თბილისი',
     role: 'user',
+    status: 'pending_verification', // New unverified user
+    permissions: {
+      canUseAI: false,
+      canBookTasks: false,
+      canViewCatalog: true,
+      canAccessDecisionCenter: false,
+      canAccessWallet: false,
+      canAccessProviderPortal: false,
+    },
     isBlocked: false,
     preferences: {
       preferredLanguage: 'ka',

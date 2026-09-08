@@ -69,8 +69,12 @@ export const AuthModal: React.FC = () => {
 
     setIsLoading(false);
     if (res.success) {
-      setSuccessMessage(language === 'ka' ? 'რეგისტრაცია წარმატებით დასრულდა!' : 'Registration successful!');
-      setTimeout(() => setSuccessMessage(null), 2000);
+      setSuccessMessage(
+        language === 'ka'
+          ? 'რეგისტრაცია წარმატებით დასრულდა! თქვენი ანგარიში შექმნილია და ელოდება ადმინისტრატორის ვერიფიკაციას.'
+          : 'Registration successful! Your account is created and awaiting admin verification.'
+      );
+      setTimeout(() => setSuccessMessage(null), 3500);
     } else if (res.error) {
       setErrorMessage(res.error);
     }

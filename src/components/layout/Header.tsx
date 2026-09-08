@@ -35,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const { user, isAuthenticated, openAuthModal } = useAuth();
+  const { user, isAuthenticated, openAuthModal, isPendingVerification, isVerified, isSuperAdmin, requirePermission } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const unreadCount = DoxoStorage.getNotifications().filter(n => !n.read).length;
@@ -109,7 +109,11 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hide-mobile">{language === 'ka' ? 'ჩემი პანელი' : 'My Panel'}</span>
           </button>
           <button
-            onClick={() => setActivePortal('provider')}
+            onClick={() => {
+              if (requirePermission('canAccessProviderPortal', 'ოსტატის პორტალი შეზღუდულია', 'ოსტატის მართვის პანელზე წვდომა ეძლევა მხოლოდ ადმინისტრატორის მიერ დადასტურებულ სპეციალისტებს.')) {
+                setActivePortal('provider');
+              }
+            }}
             className={`btn btn-sm ${activePortal === 'provider' ? 'btn-primary' : 'btn-ghost'}`}
             style={{
               borderRadius: 'var(--radius-pill)',
@@ -125,7 +129,13 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hide-mobile">{language === 'ka' ? 'ოსტატი' : 'Provider'}</span>
           </button>
           <button
-            onClick={() => setActivePortal('admin')}
+            onClick={() => {
+              if (!isSuperAdmin) {
+                requirePermission('canAccessDecisionCenter', 'ადმინ პანელი შეზღუდულია', 'ადმინისტრატორის პანელზე წვდომა აქვს მხოლოდ მთავარ ადმინისტრატორს (nukrichachava9@gmail.com).');
+                return;
+              }
+              setActivePortal('admin');
+            }}
             className={`btn btn-sm ${activePortal === 'admin' ? 'btn-primary' : 'btn-ghost'}`}
             style={{
               borderRadius: 'var(--radius-pill)',
@@ -214,7 +224,11 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Decision Center Quick Button */}
         {onOpenDecisions && (
           <button
-            onClick={onOpenDecisions}
+            onClick={() => {
+              if (requirePermission('canAccessDecisionCenter', 'გადაწყვეტილების ცენტრი შეზღუდულია', 'გადაწყვეტილების ცენტრის ანალიტიკის გამოსაყენებლად საჭიროა ადმინისტრატორის მიერ უფლების ჩართვა.')) {
+                onOpenDecisions();
+              }
+            }}
             className="btn-icon"
             title={language === 'ka' ? 'გადაწყვეტილებების ცენტრი' : 'Decision Center'}
             style={{ position: 'relative', color: 'var(--accent-primary)' }}
@@ -295,7 +309,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }} className="hide-mobile">
               {user.firstName}
             </span>
-            {(user.email?.toLowerCase() === 'nukrichachava9@gmail.com' || user.role === 'admin') && (
+            {(user.email?.toLowerCase() === 'nukrichachava9@gmail.com' || user.role === 'admin') ? (
               <span
                 style={{
                   fontSize: '10px',
@@ -308,7 +322,45 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 ADMIN
               </span>
-            )}
+            ) : isPendingVerification ? (
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  background: 'rgba(234, 179, 8, 0.15)',
+                  color: '#EAB308',
+                  border: '1px solid rgba(234, 179, 8, 0.3)',
+                  borderRadius: '10px',
+                  padding: '1px 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+                title={language === 'ka' ? 'ვერიფიკაციის მოლოდინში - ფუნქციები შეზღუდულია' : 'Awaiting admin verification'}
+              >
+                <span>⏳</span>
+                <span className="hide-mobile">{language === 'ka' ? 'მოლოდინში' : 'Pending'}</span>
+              </span>
+            ) : isVerified ? (
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#10B981',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '10px',
+                  padding: '1px 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+                title={language === 'ka' ? 'ვერიფიცირებული პროფილი' : 'Verified Profile'}
+              >
+                <span>✓</span>
+                <span className="hide-mobile">{language === 'ka' ? 'ვერიფიცირებული' : 'Verified'}</span>
+              </span>
+            ) : null}
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

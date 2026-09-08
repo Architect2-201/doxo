@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 import { DOXOOrb, OrbState } from '../common/DOXOOrb';
 import { IconMic, IconCamera, IconSend, IconX } from '../common/Icons';
 
@@ -10,6 +11,7 @@ interface AIHeroInputProps {
 
 export const AIHeroInput: React.FC<AIHeroInputProps> = ({ onSubmit, isAnalyzing }) => {
   const { language, t } = useLanguage();
+  const { requirePermission } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -31,6 +33,10 @@ export const AIHeroInput: React.FC<AIHeroInputProps> = ({ onSubmit, isAnalyzing 
   const handleTextSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if ((!prompt.trim() && !attachedMedia) || isAnalyzing) return;
+
+    if (!requirePermission('canUseAI', 'AI ასისტენტი შეზღუდულია', 'AI დამგეგმავის გამოსაყენებლად და დავალებების გასაანალიზებლად საჭიროა ადმინისტრატორის მიერ თქვენი პროფილის ვერიფიკაცია.')) {
+      return;
+    }
     
     const submitText = prompt.trim() || (attachedMedia ? 'გთხოვთ ამ ფოტოს მიხედვით გააანალიზოთ დავალება' : '');
     onSubmit(submitText, attachedMedia ? { type: 'photo', url: attachedMedia.url } : undefined);
@@ -48,6 +54,11 @@ export const AIHeroInput: React.FC<AIHeroInputProps> = ({ onSubmit, isAnalyzing 
       setIsListening(false);
       return;
     }
+
+    if (!requirePermission('canUseAI', 'ხმოვანი ასისტენტი შეზღუდულია', 'ხმოვანი AI ფუნქციის გამოსაყენებლად საჭიროა ადმინისტრატორის ვერიფიკაცია.')) {
+      return;
+    }
+
     setIsListening(true);
     setTimeout(() => {
       const sample = language === 'ka'

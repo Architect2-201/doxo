@@ -7,7 +7,7 @@ import { Logger, HealthCheckResult } from '../../lib/observability/logger';
 import { E2ETestSuite, TestResultItem } from '../../lib/testing/e2eTestSuite';
 import { Provider } from '../../types/provider';
 import { Booking, Dispute, AuditEvent, BookingStatus, ServiceCatalogItem } from '../../types/marketplace';
-import { UserProfile, UserRole } from '../../types/user';
+import { UserProfile, UserRole, UserStatus, UserPermissions } from '../../types/user';
 import { ServiceCategory, Task, TaskStatus } from '../../types/task';
 import {
   IconSparkles,
@@ -42,7 +42,7 @@ const CATEGORY_NAMES_KA: Record<ServiceCategory, string> = {
 
 export const AdminDashboardView: React.FC = () => {
   const { language } = useLanguage();
-  const { user, loginAsSuperAdmin } = useAuth();
+  const { user, loginAsSuperAdmin, verifyUser, updateUserPermissions, setUserStatus } = useAuth();
   const { totalTimeSavedHours } = useTasks();
 
   const SUPER_ADMIN_EMAIL = 'nukrichachava9@gmail.com';
@@ -64,6 +64,7 @@ export const AdminDashboardView: React.FC = () => {
   // Filters & Search
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<'all' | UserRole>('all');
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'pending_verification' | 'verified' | 'blocked'>('all');
 
   const [providerSearch, setProviderSearch] = useState('');
   const [providerCategoryFilter, setProviderCategoryFilter] = useState<string>('all');
@@ -76,6 +77,8 @@ export const AdminDashboardView: React.FC = () => {
   // Modals state
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [permModalOpen, setPermModalOpen] = useState(false);
+  const [selectedUserForPerms, setSelectedUserForPerms] = useState<UserProfile | null>(null);
   const [userFormData, setUserFormData] = useState({
     firstName: '',
     lastName: '',
@@ -83,6 +86,7 @@ export const AdminDashboardView: React.FC = () => {
     phone: '',
     city: 'თბილისი',
     role: 'user' as UserRole,
+    status: 'pending_verification' as UserStatus,
   });
 
   const [providerModalOpen, setProviderModalOpen] = useState(false);
@@ -146,6 +150,7 @@ export const AdminDashboardView: React.FC = () => {
       phone: '',
       city: 'თბილისი',
       role: 'user',
+      status: 'pending_verification',
     });
     setUserModalOpen(true);
   };
@@ -159,8 +164,19 @@ export const AdminDashboardView: React.FC = () => {
       phone: u.phone,
       city: u.city || 'თბილისი',
       role: u.role || 'user',
+      status: u.status || 'pending_verification',
     });
     setUserModalOpen(true);
+  };
+
+  const handleVerifyUser = async (u: UserProfile) => {
+    await verifyUser(u.id);
+    reloadData();
+  };
+
+  const handleOpenPermModal = (u: UserProfile) => {
+    setSelectedUserForPerms(u);
+    setPermModalOpen(true);
   };
 
   const handleSaveUser = (e: React.FormEvent) => {
@@ -175,8 +191,10 @@ export const AdminDashboardView: React.FC = () => {
         phone: userFormData.phone.trim(),
         city: userFormData.city,
         role: userFormData.role,
+        status: userFormData.status,
       });
     } else {
+      const isSuper = userFormData.email.trim().toLowerCase() === SUPER_ADMIN_EMAIL;
       const newUser: UserProfile = {
         id: `usr_${Date.now()}`,
         firstName: userFormData.firstName.trim(),
@@ -186,6 +204,24 @@ export const AdminDashboardView: React.FC = () => {
         avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80`,
         city: userFormData.city,
         role: userFormData.role,
+        status: isSuper ? 'verified' : userFormData.status,
+        permissions: isSuper
+          ? {
+              canUseAI: true,
+              canBookTasks: true,
+              canViewCatalog: true,
+              canAccessDecisionCenter: true,
+              canAccessWallet: true,
+              canAccessProviderPortal: true,
+            }
+          : {
+              canUseAI: false,
+              canBookTasks: false,
+              canViewCatalog: true,
+              canAccessDecisionCenter: false,
+              canAccessWallet: false,
+              canAccessProviderPortal: false,
+            },
         isBlocked: false,
         preferences: {
           preferredLanguage: 'ka',
@@ -429,8 +465,17 @@ export const AdminDashboardView: React.FC = () => {
     const matchesSearch =
       `${u.firstName} ${u.lastName} ${u.email} ${u.phone}`.toLowerCase().includes(userSearch.toLowerCase());
     const matchesRole = userRoleFilter === 'all' || (u.role || 'user') === userRoleFilter;
-    return matchesSearch && matchesRole;
+    const matchesStatus =
+      userStatusFilter === 'all' ||
+      (userStatusFilter === 'pending_verification' && (u.status === 'pending_verification' || !u.status)) ||
+      (userStatusFilter === 'verified' && u.status === 'verified') ||
+      (userStatusFilter === 'blocked' && (u.status === 'blocked' || u.isBlocked));
+    return matchesSearch && matchesRole && matchesStatus;
   });
+
+  const pendingUsersCount = users.filter(
+    u => (u.status === 'pending_verification' || !u.status) && u.email?.toLowerCase() !== SUPER_ADMIN_EMAIL
+  ).length;
 
   const filteredProviders = providers.filter(p => {
     const matchesSearch = `${p.nameKa} ${p.name} ${p.phone}`.toLowerCase().includes(providerSearch.toLowerCase());
@@ -556,6 +601,21 @@ export const AdminDashboardView: React.FC = () => {
           style={{ fontSize: '13.5px', gap: '8px' }}
         >
           <IconUsers size={16} /> მომხმარებლები ({users.length})
+          {pendingUsersCount > 0 && (
+            <span
+              style={{
+                background: '#EAB308',
+                color: '#1E293B',
+                borderRadius: '10px',
+                padding: '1px 7px',
+                fontSize: '11px',
+                fontWeight: 800,
+              }}
+              title="ვერიფიკაციის მოლოდინში"
+            >
+              {pendingUsersCount} მოლოდინში
+            </span>
+          )}
         </button>
         <button
           onClick={() => setActiveTab('providers')}
@@ -656,7 +716,7 @@ export const AdminDashboardView: React.FC = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>როლი:</span>
               {(['all', 'user', 'provider', 'admin'] as const).map(role => (
                 <button
@@ -675,6 +735,43 @@ export const AdminDashboardView: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {/* Status Filter */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>სტატუსი:</span>
+              {[
+                { id: 'all', label: 'ყველა' },
+                { id: 'pending_verification', label: `⏳ მოლოდინში (${pendingUsersCount})` },
+                { id: 'verified', label: '✓ ვერიფიცირებული' },
+                { id: 'blocked', label: '🚫 დაბლოკილი' },
+              ].map(st => (
+                <button
+                  key={st.id}
+                  onClick={() => setUserStatusFilter(st.id as any)}
+                  className="btn btn-sm"
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    background:
+                      userStatusFilter === st.id
+                        ? st.id === 'pending_verification'
+                          ? '#EAB308'
+                          : 'var(--accent-primary)'
+                        : 'var(--bg-secondary)',
+                    color:
+                      userStatusFilter === st.id
+                        ? st.id === 'pending_verification'
+                          ? '#1E293B'
+                          : '#fff'
+                        : 'var(--text-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    fontWeight: userStatusFilter === st.id ? 700 : 500,
+                  }}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Users Table */}
@@ -684,9 +781,9 @@ export const AdminDashboardView: React.FC = () => {
                 <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
                   <th style={{ padding: '12px 16px' }}>მომხმარებელი</th>
                   <th style={{ padding: '12px 16px' }}>ელ.ფოსტა / ტელეფონი</th>
-                  <th style={{ padding: '12px 16px' }}>ქალაქი</th>
                   <th style={{ padding: '12px 16px' }}>როლი</th>
-                  <th style={{ padding: '12px 16px' }}>სტატუსი</th>
+                  <th style={{ padding: '12px 16px' }}>ვერიფიკაცია</th>
+                  <th style={{ padding: '12px 16px' }}>უფლებები (Permissions)</th>
                   <th style={{ padding: '12px 16px', textAlign: 'right' }}>მოქმედება</th>
                 </tr>
               </thead>
@@ -698,90 +795,196 @@ export const AdminDashboardView: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map(u => (
-                    <tr key={u.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <img
-                            src={u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120'}
-                            alt={u.firstName}
-                            style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
-                          />
-                          <div>
-                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                              {u.firstName} {u.lastName}
+                  filteredUsers.map(u => {
+                    const isPending = (u.status === 'pending_verification' || !u.status) && u.email?.toLowerCase() !== SUPER_ADMIN_EMAIL;
+                    const isVer = u.status === 'verified' || u.email?.toLowerCase() === SUPER_ADMIN_EMAIL;
+                    const isBlk = u.isBlocked || u.status === 'blocked';
+
+                    return (
+                      <tr key={u.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img
+                              src={u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120'}
+                              alt={u.firstName}
+                              style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                            <div>
+                              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                {u.firstName} {u.lastName}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {u.id} · {u.city || 'თბილისი'}</div>
                             </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {u.id}</div>
                           </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600 }}>{u.email}</div>
-                        <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>{u.phone}</div>
-                      </td>
-                      <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{u.city || 'თბილისი'}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span
-                          className="brand-badge"
-                          style={{
-                            background:
-                              u.role === 'admin'
-                                ? 'rgba(234, 179, 8, 0.15)'
-                                : u.role === 'provider'
-                                ? 'rgba(59, 130, 246, 0.15)'
-                                : 'rgba(16, 185, 129, 0.15)',
-                            color:
-                              u.role === 'admin'
-                                ? '#EAB308'
-                                : u.role === 'provider'
-                                ? '#3B82F6'
-                                : 'var(--status-success-text)',
-                            fontWeight: 700,
-                          }}
-                        >
-                          {u.role === 'admin' ? '👑 ადმინი' : u.role === 'provider' ? '🛠️ ოსტატი' : '👤 მომხმარებელი'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        {u.isBlocked ? (
-                          <span style={{ color: 'var(--status-danger)', fontWeight: 700, fontSize: '12px' }}>
-                            🚫 დაბლოკილი
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ fontWeight: 600 }}>{u.email}</div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>{u.phone}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span
+                            className="brand-badge"
+                            style={{
+                              background:
+                                u.role === 'admin'
+                                  ? 'rgba(234, 179, 8, 0.15)'
+                                  : u.role === 'provider'
+                                  ? 'rgba(59, 130, 246, 0.15)'
+                                  : 'rgba(16, 185, 129, 0.15)',
+                              color:
+                                u.role === 'admin'
+                                  ? '#EAB308'
+                                  : u.role === 'provider'
+                                  ? '#3B82F6'
+                                  : 'var(--status-success-text)',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {u.role === 'admin' ? '👑 ადმინი' : u.role === 'provider' ? '🛠️ ოსტატი' : '👤 მომხმარებელი'}
                           </span>
-                        ) : (
-                          <span style={{ color: 'var(--status-success-text)', fontWeight: 700, fontSize: '12px' }}>
-                            ✓ აქტიური
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => handleOpenEditUser(u)}
-                            className="btn btn-secondary btn-sm"
-                            title="რედაქტირება"
-                          >
-                            <IconEdit size={13} />
-                          </button>
-                          <button
-                            onClick={() => handleToggleBlockUser(u)}
-                            className="btn btn-secondary btn-sm"
-                            style={{ color: u.isBlocked ? 'var(--status-success-text)' : '#F59E0B' }}
-                            title={u.isBlocked ? 'განბლოკვა' : 'დაბლოკვა'}
-                          >
-                            {u.isBlocked ? 'განბლოკვა' : 'ბლოკი'}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u)}
-                            className="btn btn-secondary btn-sm"
-                            style={{ color: 'var(--status-danger)' }}
-                            title="წაშლა"
-                          >
-                            <IconTrash size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          {isBlk ? (
+                            <span
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                color: '#EF4444',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                borderRadius: '12px',
+                                padding: '3px 8px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                              }}
+                            >
+                              🚫 დაბლოკილი
+                            </span>
+                          ) : isPending ? (
+                            <span
+                              style={{
+                                background: 'rgba(234, 179, 8, 0.15)',
+                                color: '#EAB308',
+                                border: '1px solid rgba(234, 179, 8, 0.3)',
+                                borderRadius: '12px',
+                                padding: '3px 8px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <span>⏳</span> მოლოდინში
+                            </span>
+                          ) : isVer ? (
+                            <span
+                              style={{
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                color: '#10B981',
+                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                borderRadius: '12px',
+                                padding: '3px 8px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <span>✓</span> ვერიფიცირებული
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>-</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '240px' }}>
+                            {u.permissions?.canUseAI && (
+                              <span style={{ fontSize: '10.5px', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                                🤖 AI
+                              </span>
+                            )}
+                            {u.permissions?.canBookTasks && (
+                              <span style={{ fontSize: '10.5px', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                                📦 შეკვეთა
+                              </span>
+                            )}
+                            {u.permissions?.canAccessDecisionCenter && (
+                              <span style={{ fontSize: '10.5px', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                                ⚖️ ანალიტიკა
+                              </span>
+                            )}
+                            {u.permissions?.canAccessWallet && (
+                              <span style={{ fontSize: '10.5px', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                                💳 საფულე
+                              </span>
+                            )}
+                            {u.permissions?.canAccessProviderPortal && (
+                              <span style={{ fontSize: '10.5px', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                                🛠️ ოსტატის პანელი
+                              </span>
+                            )}
+                            {!u.permissions?.canUseAI && !u.permissions?.canBookTasks && !u.permissions?.canAccessDecisionCenter && (
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                შეზღუდული წვდომა
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                            {isPending && (
+                              <button
+                                onClick={() => handleVerifyUser(u)}
+                                className="btn btn-sm"
+                                style={{
+                                  background: '#10B981',
+                                  borderColor: '#10B981',
+                                  color: '#fff',
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  padding: '5px 10px',
+                                }}
+                                title="ვერიფიკაციის მინიჭება"
+                              >
+                                ✓ ვერიფიკაცია
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleOpenPermModal(u)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '11.5px', padding: '5px 9px' }}
+                              title="უფლებების მართვა"
+                            >
+                              🛡️ უფლებები
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditUser(u)}
+                              className="btn btn-secondary btn-sm"
+                              title="რედაქტირება"
+                            >
+                              <IconEdit size={13} />
+                            </button>
+                            <button
+                              onClick={() => handleToggleBlockUser(u)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ color: u.isBlocked ? 'var(--status-success-text)' : '#F59E0B' }}
+                              title={u.isBlocked ? 'განბლოკვა' : 'დაბლოკვა'}
+                            >
+                              {u.isBlocked ? 'განბლოკვა' : 'ბლოკი'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(u)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ color: 'var(--status-danger)' }}
+                              title="წაშლა"
+                            >
+                              <IconTrash size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -1999,6 +2202,306 @@ export const AdminDashboardView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* USER PERMISSIONS MANAGEMENT MODAL */}
+      {/* ========================================================================= */}
+      {permModalOpen && selectedUserForPerms && (
+        <div
+          className="auth-modal-overlay animate-fade-in"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(8, 9, 14, 0.85)',
+            backdropFilter: 'blur(10px)',
+            padding: '16px',
+          }}
+          onClick={e => {
+            if (e.target === e.currentTarget) setPermModalOpen(false);
+          }}
+        >
+          <div
+            className="card animate-scale-in"
+            style={{
+              width: '100%',
+              maxWidth: '560px',
+              backgroundColor: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-modal)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: 'var(--shadow-modal)',
+              padding: '24px',
+              position: 'relative',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🛡️</span> მომხმარებლის უფლებების მართვა
+                </h3>
+                <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: 0 }}>
+                  {selectedUserForPerms.firstName} {selectedUserForPerms.lastName} ({selectedUserForPerms.email})
+                </p>
+              </div>
+              <button
+                onClick={() => setPermModalOpen(false)}
+                className="btn btn-ghost btn-sm"
+                style={{ padding: '6px', borderRadius: '50%' }}
+              >
+                <IconX size={16} />
+              </button>
+            </div>
+
+            {/* Verification Status Banner & Quick Action */}
+            <div
+              style={{
+                background: selectedUserForPerms.status === 'verified' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(234, 179, 8, 0.12)',
+                border: `1px solid ${selectedUserForPerms.status === 'verified' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
+                borderRadius: '12px',
+                padding: '12px 16px',
+                marginBottom: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '10px',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: selectedUserForPerms.status === 'verified' ? '#10B981' : '#EAB308' }}>
+                  სტატუსი: {selectedUserForPerms.status === 'verified' ? '✓ ვერიფიცირებული' : '⏳ ვერიფიკაციის მოლოდინში'}
+                </div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                  {selectedUserForPerms.status === 'verified'
+                    ? `დადასტურებულია ${selectedUserForPerms.verifiedBy || 'ადმინის'} მიერ`
+                    : 'ახალი მომხმარებელი, საჭიროებს ადმინისტრატორის დადასტურებას'}
+                </div>
+              </div>
+
+              {selectedUserForPerms.status !== 'verified' && selectedUserForPerms.email?.toLowerCase() !== SUPER_ADMIN_EMAIL && (
+                <button
+                  onClick={async () => {
+                    await verifyUser(selectedUserForPerms.id);
+                    setSelectedUserForPerms({
+                      ...selectedUserForPerms,
+                      status: 'verified',
+                      permissions: {
+                        canUseAI: true,
+                        canBookTasks: true,
+                        canViewCatalog: true,
+                        canAccessDecisionCenter: true,
+                        canAccessWallet: true,
+                        canAccessProviderPortal: false,
+                      },
+                    });
+                    reloadData();
+                  }}
+                  className="btn btn-sm"
+                  style={{ background: '#10B981', color: '#fff', border: 'none', fontWeight: 700, fontSize: '12px', padding: '6px 12px' }}
+                >
+                  ✓ ვერიფიკაციის მინიჭება
+                </button>
+              )}
+            </div>
+
+            {/* Quick Bulk Presets */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  const allOn: UserPermissions = {
+                    canUseAI: true,
+                    canBookTasks: true,
+                    canViewCatalog: true,
+                    canAccessDecisionCenter: true,
+                    canAccessWallet: true,
+                    canAccessProviderPortal: true,
+                  };
+                  await updateUserPermissions(selectedUserForPerms.id, allOn);
+                  setSelectedUserForPerms({ ...selectedUserForPerms, permissions: allOn });
+                  reloadData();
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '11.5px' }}
+              >
+                ⚡ სრული წვდომა (ყველა ON)
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const standard: UserPermissions = {
+                    canUseAI: true,
+                    canBookTasks: true,
+                    canViewCatalog: true,
+                    canAccessDecisionCenter: true,
+                    canAccessWallet: true,
+                    canAccessProviderPortal: false,
+                  };
+                  await updateUserPermissions(selectedUserForPerms.id, standard);
+                  setSelectedUserForPerms({ ...selectedUserForPerms, permissions: standard });
+                  reloadData();
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '11.5px' }}
+              >
+                👤 სტანდარტული მომხმარებელი
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const restricted: UserPermissions = {
+                    canUseAI: false,
+                    canBookTasks: false,
+                    canViewCatalog: true,
+                    canAccessDecisionCenter: false,
+                    canAccessWallet: false,
+                    canAccessProviderPortal: false,
+                  };
+                  await updateUserPermissions(selectedUserForPerms.id, restricted);
+                  setSelectedUserForPerms({ ...selectedUserForPerms, permissions: restricted });
+                  reloadData();
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '11.5px', color: '#EF4444' }}
+              >
+                🔒 შეზღუდული
+              </button>
+            </div>
+
+            {/* Interactive Feature Permissions Switches */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                {
+                  key: 'canUseAI' as const,
+                  icon: '🤖',
+                  title: 'AI ასისტენტი & დამგეგმავი',
+                  desc: 'ხელოვნური ინტელექტის ჩატი, ამოცანების დაგეგმვა და ავტომატური დაშლა',
+                },
+                {
+                  key: 'canBookTasks' as const,
+                  icon: '📦',
+                  title: 'შეკვეთების გაფორმება & დაჯავშნა',
+                  desc: 'სპეციალისტის გამოძახება, სერვისის შეკვეთა და დროის ჩანიშვნა',
+                },
+                {
+                  key: 'canViewCatalog' as const,
+                  icon: '🔍',
+                  title: 'სერვისებისა და ოსტატების კატალოგი',
+                  desc: 'პროვაიდერების პროფილების, რეიტინგების და ფასების დათვალიერება',
+                },
+                {
+                  key: 'canAccessDecisionCenter' as const,
+                  icon: '⚖️',
+                  title: 'გადაწყვეტილების ცენტრი (Decision Center)',
+                  desc: 'ჭკვიანი შედარება, ალტერნატივების ანალიზი და რეკომენდაციები',
+                },
+                {
+                  key: 'canAccessWallet' as const,
+                  icon: '💳',
+                  title: 'საფულე & ფინანსური გადახდები',
+                  desc: 'ბარათების მიბმა, ესქროუ დაცვა და ტრანზაქციების ისტორია',
+                },
+                {
+                  key: 'canAccessProviderPortal' as const,
+                  icon: '🛠️',
+                  title: 'ოსტატის / სერვისის მართვის პანელი',
+                  desc: 'შემოსავლების კონტროლი, განრიგი და მომხმარებელთა შეკვეთების მართვა',
+                },
+              ].map(item => {
+                const currentVal = Boolean(selectedUserForPerms.permissions?.[item.key]);
+                return (
+                  <div
+                    key={item.key}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-subtle)',
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '20px' }}>{item.icon}</span>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                          {item.title}
+                        </div>
+                        <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                          {item.desc}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Toggle Switch */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const updated = {
+                          ...(selectedUserForPerms.permissions || {}),
+                          [item.key]: !currentVal,
+                        };
+                        await updateUserPermissions(selectedUserForPerms.id, { [item.key]: !currentVal });
+                        setSelectedUserForPerms({
+                          ...selectedUserForPerms,
+                          permissions: updated as any,
+                        });
+                        reloadData();
+                      }}
+                      style={{
+                        width: '46px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        background: currentVal ? '#10B981' : 'rgba(255, 255, 255, 0.18)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background 0.2s ease',
+                        flexShrink: 0,
+                      }}
+                      title={currentVal ? 'გამორთვა' : 'ჩართვა'}
+                    >
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '3px',
+                          left: currentVal ? '23px' : '3px',
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: '#fff',
+                          transition: 'left 0.2s ease',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+                        }}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button
+                type="button"
+                onClick={() => setPermModalOpen(false)}
+                className="btn btn-primary btn-sm"
+                style={{ padding: '8px 20px' }}
+              >
+                მზადაა
+              </button>
+            </div>
           </div>
         </div>
       )}
