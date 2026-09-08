@@ -82,8 +82,12 @@ export const AuthModal: React.FC = () => {
 
   const handleGoogleClick = async () => {
     setIsLoading(true);
-    await loginWithGoogle();
+    setErrorMessage(null);
+    const res = await loginWithGoogle();
     setIsLoading(false);
+    if (!res.success && res.error) {
+      setErrorMessage(res.error);
+    }
   };
 
   return (

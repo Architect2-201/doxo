@@ -36,6 +36,7 @@ import {
 const STORAGE_KEYS = {
   USER: 'doxo_user',
   USERS: 'doxo_users',
+  CREDENTIALS: 'doxo_credentials',
   PROVIDERS: 'doxo_providers',
   TASKS: 'doxo_tasks',
   INBOX: 'doxo_inbox',
@@ -50,7 +51,15 @@ const STORAGE_KEYS = {
   ANALYTICS: 'doxo_analytics',
 };
 
-const STORAGE_CLEAN_SLATE_KEY = 'doxo_clean_slate_v3_active';
+export interface UserCredentialRecord {
+  userId: string;
+  email: string;
+  phone: string;
+  passwordHash: string;
+  createdAt: string;
+}
+
+const STORAGE_CLEAN_SLATE_KEY = 'doxo_clean_slate_v4_auth';
 
 // Auto-purge old mock dummy data on initial load
 function runCleanSlatePurge() {
@@ -62,7 +71,7 @@ function runCleanSlatePurge() {
         localStorage.removeItem(k);
       });
 
-      // If stored auth user is not super admin, clear it
+      // Clear any fabricated non-admin auth user
       const saved = localStorage.getItem('doxo_auth_user');
       if (saved) {
         try {
@@ -73,7 +82,10 @@ function runCleanSlatePurge() {
           }
         } catch {
           localStorage.removeItem('doxo_auth_user');
+          localStorage.setItem('doxo_is_authenticated', 'false');
         }
+      } else {
+        localStorage.setItem('doxo_is_authenticated', 'false');
       }
 
       localStorage.setItem(STORAGE_CLEAN_SLATE_KEY, 'true');
@@ -156,6 +168,29 @@ export class DoxoStorage {
         this.setItem(STORAGE_KEYS.USER, users[index]);
       }
     }
+  }
+
+  // Credentials Store
+  static getCredentials(): UserCredentialRecord[] {
+    return this.getItem<UserCredentialRecord[]>(STORAGE_KEYS.CREDENTIALS, []);
+  }
+
+  static saveCredential(cred: UserCredentialRecord): void {
+    const all = this.getCredentials().filter(
+      c => c.email.toLowerCase() !== cred.email.toLowerCase() && c.phone !== cred.phone
+    );
+    all.push(cred);
+    this.setItem(STORAGE_KEYS.CREDENTIALS, all);
+  }
+
+  static findCredentialByEmailOrPhone(identifier: string): UserCredentialRecord | undefined {
+    const clean = identifier.trim().toLowerCase();
+    const digits = identifier.replace(/\D/g, '');
+    return this.getCredentials().find(c => {
+      if (c.email.toLowerCase() === clean) return true;
+      if (digits && digits.length >= 9 && c.phone.replace(/\D/g, '') === digits) return true;
+      return false;
+    });
   }
 
   static deleteUser(id: string): void {

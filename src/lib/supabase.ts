@@ -129,3 +129,26 @@ export async function upsertSupabaseProfile(profile: UserProfile): Promise<boole
     return false;
   }
 }
+
+/**
+ * Translates Supabase auth error messages into user-friendly Georgian
+ */
+export function translateSupabaseError(errorMsg: string): string {
+  const msg = (errorMsg || '').toLowerCase();
+  if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+    return 'არასწორი ელ.ფოსტა ან პაროლი. გთხოვთ გადაამოწმოთ მონაცემები.';
+  }
+  if (msg.includes('user already registered') || msg.includes('already registered') || msg.includes('already exists')) {
+    return 'მომხმარებელი ამ ელ.ფოსტით უკვე დარეგისტრირებულია. გთხოვთ გაიაროთ შესვლა.';
+  }
+  if (msg.includes('password should be at least') || msg.includes('weak password')) {
+    return 'პაროლი უნდა შედგებოდეს მინიმუმ 6 სიმბოლოსგან.';
+  }
+  if (msg.includes('email not confirmed')) {
+    return 'გთხოვთ დაადასტუროთ თქვენი ელ.ფოსტა Supabase-ის წერილში.';
+  }
+  if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+    return 'ზედმეტად ბევრი მოთხოვნა. გთხოვთ მოიცადოთ 2-3 წუთი.';
+  }
+  return errorMsg || 'სისტემური შეცდომა ავტორიზაციისას.';
+}

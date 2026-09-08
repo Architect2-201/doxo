@@ -6,10 +6,12 @@ import {
   supabase,
   fetchSupabaseProfile,
   upsertSupabaseProfile,
+  translateSupabaseError,
   DEFAULT_UNVERIFIED_PERMISSIONS,
   DEFAULT_VERIFIED_PERMISSIONS,
   SUPER_ADMIN_PERMISSIONS,
 } from '../lib/supabase';
+import { PasswordSecurity } from '../lib/security/passwordSecurity';
 import { PermissionGateModal } from '../components/common/PermissionGateModal';
 
 export interface AuthCredentials {
@@ -39,7 +41,7 @@ interface AuthContextType {
   closeAuthModal: () => void;
   login: (credentials: AuthCredentials) => Promise<{ success: boolean; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: () => Promise<boolean>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   loginAsSuperAdmin: () => void;
   logout: () => void;
   updateUser: (data: Partial<UserProfile>) => void;
@@ -59,18 +61,21 @@ const SUPER_ADMIN_EMAIL = 'nukrichachava9@gmail.com';
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Real authenticated state: default is false for guests
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const saved = localStorage.getItem('doxo_is_authenticated');
-    return saved !== null ? saved === 'true' : true;
+    return saved === 'true';
   });
 
   const [user, setUser] = useState<UserProfile | null>(() => {
     try {
+      const isAuth = localStorage.getItem('doxo_is_authenticated') === 'true';
+      if (!isAuth) return null;
       const savedUser = localStorage.getItem('doxo_auth_user');
       if (savedUser) return JSON.parse(savedUser);
-      return DoxoStorage.getUser();
+      return null;
     } catch {
-      return DoxoStorage.getUser();
+      return null;
     }
   });
 
@@ -107,6 +112,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(true);
           DoxoStorage.updateUser(profile);
         }
+      } else if (_event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setUser(null);
       }
     });
 
@@ -117,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     localStorage.setItem('doxo_is_authenticated', String(isAuthenticated));
-    if (user) {
+    if (user && isAuthenticated) {
       localStorage.setItem('doxo_auth_user', JSON.stringify(user));
     } else {
       localStorage.removeItem('doxo_auth_user');
@@ -148,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isSuperAdmin = Boolean(
-    user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL || user?.role === 'admin'
+    isAuthenticated && (user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL || user?.role === 'admin')
   );
 
   const isVerified = Boolean(
@@ -156,13 +164,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const isPendingVerification = Boolean(
-    !isSuperAdmin && (!user?.status || user?.status === 'pending_verification')
+    isAuthenticated && !isSuperAdmin && (!user?.status || user?.status === 'pending_verification')
   );
 
   const hasPermission = (permission: keyof UserPermissions): boolean => {
+    if (!isAuthenticated) return false;
     if (isSuperAdmin) return true;
     if (!user) return false;
-    if (user.status === 'blocked') return false;
+    if (user.status === 'blocked' || user.isBlocked) return false;
     return Boolean(user.permissions?.[permission]);
   };
 
@@ -171,6 +180,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     title?: string,
     description?: string
   ): boolean => {
+    if (!isAuthenticated) {
+      openAuthModal('signin');
+      return false;
+    }
     if (hasPermission(permission)) {
       return true;
     }
@@ -178,76 +191,118 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
+  /**
+   * Real Login: Validates against Supabase or verified local credential store.
+   * Never fabricates fake mock users on failed logins.
+   */
   const login = async (credentials: AuthCredentials): Promise<{ success: boolean; error?: string }> => {
-    await new Promise(res => setTimeout(res, 500));
+    const identifier = credentials.emailOrPhone.trim();
+    const password = credentials.password?.trim() || '';
 
-    const email = credentials.emailOrPhone.trim();
-    if (!email) {
-      return { success: false, error: 'გთხოვთ მიუთითოთ ელ.ფოსტა ან ტელეფონის ნომერი' };
+    if (!identifier) {
+      return { success: false, error: 'გთხოვთ მიუთითოთ ელ.ფოსტა ან ტელეფონის ნომერი.' };
+    }
+    if (!password) {
+      return { success: false, error: 'გთხოვთ შეიყვანოთ პაროლი.' };
     }
 
-    const isSuper = email.toLowerCase() === SUPER_ADMIN_EMAIL;
+    const isSuperEmail = identifier.toLowerCase() === SUPER_ADMIN_EMAIL;
 
-    // Try Supabase Auth if configured
-    if (isSupabaseConfigured && supabase && email.includes('@')) {
+    // 1. Supabase Auth if configured
+    if (isSupabaseConfigured && supabase && identifier.includes('@')) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password: credentials.password || 'password123',
+          email: identifier,
+          password: password,
         });
 
         if (error) {
-          console.warn('Supabase auth warning:', error.message);
-          // Fall back to local storage if user not found in supabase
-        } else if (data.user) {
-          const profile = await fetchSupabaseProfile(data.user.id);
-          if (profile) {
-            setUser(profile);
-            setIsAuthenticated(true);
-            DoxoStorage.updateUser(profile);
-            closeAuthModal();
-            return { success: true };
-          }
+          return { success: false, error: translateSupabaseError(error.message) };
         }
-      } catch (err) {
-        console.warn('Supabase login exception, falling back:', err);
+
+        if (data.user) {
+          let profile = await fetchSupabaseProfile(data.user.id);
+          if (!profile) {
+            profile = {
+              id: data.user.id,
+              firstName: data.user.user_metadata?.first_name || identifier.split('@')[0],
+              lastName: data.user.user_metadata?.last_name || '',
+              email: data.user.email || identifier,
+              phone: data.user.user_metadata?.phone || '+995 599 00 00 00',
+              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+              city: 'თბილისი',
+              role: isSuperEmail ? 'admin' : 'user',
+              status: isSuperEmail ? 'verified' : 'pending_verification',
+              permissions: isSuperEmail ? SUPER_ADMIN_PERMISSIONS : DEFAULT_UNVERIFIED_PERMISSIONS,
+              verifiedAt: isSuperEmail ? new Date().toISOString() : undefined,
+              verifiedBy: isSuperEmail ? 'System' : undefined,
+              preferences: {
+                preferredLanguage: 'ka',
+                preferredTimeOfDay: 'flexible',
+                allowPhoneCalls: true,
+                priorityCriteria: 'highest_rated',
+                savedAddresses: [],
+                favoriteProviderIds: [],
+              },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            await upsertSupabaseProfile(profile);
+          }
+
+          setUser(profile);
+          setIsAuthenticated(true);
+          DoxoStorage.updateUser(profile);
+          closeAuthModal();
+          return { success: true };
+        }
+      } catch (err: any) {
+        return { success: false, error: err.message || 'სისტემური შეცდომა ავტორიზაციისას.' };
       }
     }
 
-    // Local / Fallback Authentication
+    // 2. Local Credential Database Verification
     const allUsers = DoxoStorage.getAllUsers();
-    let foundUser = allUsers.find(
-      u => u.email.toLowerCase() === email.toLowerCase() || u.phone === email
-    );
+    const cleanId = identifier.toLowerCase();
+    const digitsId = identifier.replace(/\D/g, '');
+
+    const foundUser = allUsers.find(u => {
+      if (u.email.toLowerCase() === cleanId) return true;
+      if (digitsId && digitsId.length >= 9 && u.phone.replace(/\D/g, '') === digitsId) return true;
+      return false;
+    });
 
     if (!foundUser) {
-      const parts = email.split('@')[0].split('.');
-      const first = parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : 'მომხმარებელი';
-      foundUser = {
-        id: `usr_${Date.now()}`,
-        firstName: isSuper ? 'ნუკრი' : first,
-        lastName: isSuper ? 'ჩაჩავა' : '',
-        email: email.includes('@') ? email : (isSuper ? SUPER_ADMIN_EMAIL : `${email}@doxo.ge`),
-        phone: !email.includes('@') ? email : '+995 599 00 00 00',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-        city: 'თბილისი',
-        role: isSuper ? 'admin' : 'user',
-        status: isSuper ? 'verified' : 'pending_verification',
-        permissions: isSuper ? SUPER_ADMIN_PERMISSIONS : DEFAULT_UNVERIFIED_PERMISSIONS,
-        verifiedAt: isSuper ? new Date().toISOString() : undefined,
-        verifiedBy: isSuper ? 'System' : undefined,
-        preferences: {
-          preferredLanguage: 'ka',
-          preferredTimeOfDay: 'flexible',
-          allowPhoneCalls: true,
-          priorityCriteria: 'highest_rated',
-          savedAddresses: [],
-          favoriteProviderIds: [],
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      return {
+        success: false,
+        error: 'მომხმარებელი ამ ელ.ფოსტით ან ნომრით არ არსებობს. გთხოვთ გაიაროთ რეგისტრაცია.',
       };
-      DoxoStorage.addUser(foundUser);
+    }
+
+    if (foundUser.status === 'blocked' || foundUser.isBlocked) {
+      return {
+        success: false,
+        error: 'თქვენი ანგარიში დაბლოკილია სისტემის ადმინისტრატორის მიერ.',
+      };
+    }
+
+    // Password verification
+    const cred = DoxoStorage.findCredentialByEmailOrPhone(identifier);
+    if (cred) {
+      const isMatch = await PasswordSecurity.verify(password, cred.passwordHash);
+      if (!isMatch) {
+        return { success: false, error: 'არასწორი პაროლი. გთხოვთ სცადოთ თავიდან.' };
+      }
+    } else {
+      // First time login for seeded user: register password hash
+      const hash = await PasswordSecurity.hash(password);
+      DoxoStorage.saveCredential({
+        userId: foundUser.id,
+        email: foundUser.email,
+        phone: foundUser.phone,
+        passwordHash: hash,
+        createdAt: new Date().toISOString(),
+      });
     }
 
     DoxoStorage.updateUser(foundUser);
@@ -257,28 +312,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  /**
+   * Real Registration: Strict validation, prevents duplicate emails/phones,
+   * stores hashed credentials and sets status to pending_verification for admin approval.
+   */
   const register = async (data: RegisterData): Promise<{ success: boolean; error?: string }> => {
-    await new Promise(res => setTimeout(res, 650));
-
-    if (!data.fullName.trim()) {
-      return { success: false, error: 'გთხოვთ შეიყვანოთ სახელი და გვარი' };
-    }
-    const email = data.email.trim();
-    if (!email && !data.phone.trim()) {
-      return { success: false, error: 'გთხოვთ მიუთითოთ ელ.ფოსტა ან ტელეფონი' };
+    // 1. Strict Input Validation
+    const validation = PasswordSecurity.validateRegistration(data);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
     }
 
-    const isSuper = email.toLowerCase() === SUPER_ADMIN_EMAIL;
-    const nameParts = data.fullName.trim().split(' ');
+    const email = data.email.trim().toLowerCase();
+    const phone = data.phone.trim();
+    const digits = phone.replace(/\D/g, '');
+    const isSuper = email === SUPER_ADMIN_EMAIL;
+
+    // 2. Check for duplicate registration
+    const allUsers = DoxoStorage.getAllUsers();
+    const emailExists = allUsers.some(u => u.email.toLowerCase() === email);
+    if (emailExists) {
+      return {
+        success: false,
+        error: 'მითითებული ელ.ფოსტით მომხმარებელი უკვე დარეგისტრირებულია. გთხოვთ გაიაროთ შესვლა.',
+      };
+    }
+
+    const phoneExists = allUsers.some(u => digits && digits.length >= 9 && u.phone.replace(/\D/g, '') === digits);
+    if (phoneExists) {
+      return {
+        success: false,
+        error: 'მითითებული ტელეფონის ნომრით მომხმარებელი უკვე დარეგისტრირებულია. გთხოვთ გაიაროთ შესვლა.',
+      };
+    }
+
+    const nameParts = data.fullName.trim().split(/\s+/);
     const firstName = nameParts[0] || 'მომხმარებელი';
     const lastName = nameParts.slice(1).join(' ') || '';
 
+    const newUserId = `usr_${Date.now()}`;
     const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
+      id: newUserId,
       firstName: isSuper ? 'ნუკრი' : firstName,
       lastName: isSuper ? 'ჩაჩავა' : lastName,
-      email: email || 'user@doxo.ge',
-      phone: data.phone.trim() || '+995 599 00 00 00',
+      email: email,
+      phone: phone,
       avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80`,
       city: 'თბილისი',
       role: isSuper ? 'admin' : 'user',
@@ -305,8 +383,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updatedAt: new Date().toISOString(),
     };
 
-    // Try Supabase Auth Sign Up
-    if (isSupabaseConfigured && supabase && email.includes('@')) {
+    // 3. Supabase Auth if configured
+    if (isSupabaseConfigured && supabase) {
       try {
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
@@ -315,19 +393,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             data: {
               first_name: firstName,
               last_name: lastName,
-              phone: data.phone,
+              phone: phone,
             },
           },
         });
 
-        if (!authError && authData.user) {
+        if (authError) {
+          return { success: false, error: translateSupabaseError(authError.message) };
+        }
+
+        if (authData.user) {
           newUser.id = authData.user.id;
           await upsertSupabaseProfile(newUser);
         }
-      } catch (err) {
-        console.warn('Supabase registration fallback:', err);
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Supabase რეგისტრაციის შეცდომა.' };
       }
     }
+
+    // 4. Save Credential & User into local database
+    const passwordHash = await PasswordSecurity.hash(data.password || '');
+    DoxoStorage.saveCredential({
+      userId: newUser.id,
+      email: newUser.email,
+      phone: newUser.phone,
+      passwordHash,
+      createdAt: new Date().toISOString(),
+    });
 
     DoxoStorage.addUser(newUser);
     DoxoStorage.updateUser(newUser);
@@ -337,23 +429,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
-  const loginWithGoogle = async (): Promise<boolean> => {
-    await new Promise(res => setTimeout(res, 500));
-    const googleUser: UserProfile = {
-      ...DoxoStorage.getUser(),
-      firstName: 'გიორგი',
-      lastName: 'დოლიძე',
-      email: 'giorgi.dolidze@gmail.com',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-      role: 'user',
-      status: 'verified',
-      permissions: DEFAULT_VERIFIED_PERMISSIONS,
+  /**
+   * Google Auth: Genuine OAuth via Supabase, or helpful notice when not yet wired up
+   */
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+          },
+        });
+        if (error) {
+          return { success: false, error: translateSupabaseError(error.message) };
+        }
+        return { success: true };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Google ავტორიზაციის შეცდომა.' };
+      }
+    }
+
+    return {
+      success: false,
+      error: 'Google-ით ავტორიზაციისთვის საჭიროა Supabase OAuth-ის მიერთება. გთხოვთ გაიაროთ რეგისტრაცია ელ.ფოსტით და პაროლით.',
     };
-    DoxoStorage.updateUser(googleUser);
-    setUser(googleUser);
-    setIsAuthenticated(true);
-    closeAuthModal();
-    return true;
   };
 
   const loginAsSuperAdmin = () => {
